@@ -126,7 +126,10 @@ function advanceTimers(currentTime) {
     timer = peek(timerQueue);
   }
 }
-
+/*
+* 判断taskQueue是否有任务 有就执行
+* 没有就等firstTimer.startTime - currentTime之后再去看看timerQueue是否有任务可以执行
+* */
 function handleTimeout(currentTime) {
   isHostTimeoutScheduled = false;
   advanceTimers(currentTime);
@@ -353,12 +356,14 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
   if (enableProfiling) {
     newTask.isQueued = false;
   }
-
+  //如果是异步任务push到timerQueue 如果是同步任务push到taskQueue
+  //开始时间大于现在的时间，说明是个异步任务
   if (startTime > currentTime) {
     // This is a delayed task.
-    newTask.sortIndex = startTime;
+    newTask.sortIndex = startTime;//赋值开始时间，作为排序标志
     push(timerQueue, newTask);
     if (peek(taskQueue) === null && newTask === peek(timerQueue)) {
+      //如果taskQueue没有任务，并且新加的异步任务是优先级最高的
       // All tasks are delayed, and this is the task with the earliest delay.
       if (isHostTimeoutScheduled) {
         // Cancel an existing timeout.
