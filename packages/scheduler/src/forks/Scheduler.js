@@ -60,7 +60,7 @@ if (hasPerformanceNow) {
 var maxSigned31BitInt = 1073741823;
 
 // Times out immediately
-var IMMEDIATE_PRIORITY_TIMEOUT = -1;
+var IMMEDIATE_PRIORITY_TIMEOUT = -1;  //立即执行
 // Eventually times out
 var USER_BLOCKING_PRIORITY_TIMEOUT = 250;
 var NORMAL_PRIORITY_TIMEOUT = 5000;
