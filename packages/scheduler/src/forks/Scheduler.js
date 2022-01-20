@@ -59,8 +59,8 @@ if (hasPerformanceNow) {
 // 0b111111111111111111111111111111
 var maxSigned31BitInt = 1073741823;
 
-// Times out immediately
-var IMMEDIATE_PRIORITY_TIMEOUT = -1;  //立即执行
+// Times out immediately  延时的时间
+var IMMEDIATE_PRIORITY_TIMEOUT = -1;       //立即执行
 // Eventually times out
 var USER_BLOCKING_PRIORITY_TIMEOUT = 250;
 var NORMAL_PRIORITY_TIMEOUT = 5000;
@@ -304,7 +304,11 @@ function unstable_wrapCallback(callback) {
     }
   };
 }
-
+/*
+* priorityLevel 优先级
+* callback      回调
+* options       配置
+* */
 function unstable_scheduleCallback(priorityLevel, callback, options) {
   var currentTime = getCurrentTime();
 
@@ -319,7 +323,7 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
   } else {
     startTime = currentTime;
   }
-
+  //timeQueue出列表的时间
   var timeout;
   switch (priorityLevel) {
     case ImmediatePriority:
@@ -353,7 +357,7 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
   if (enableProfiling) {
     newTask.isQueued = false;
   }
-
+  //异步任务
   if (startTime > currentTime) {
     // This is a delayed task.
     newTask.sortIndex = startTime;
