@@ -4,6 +4,16 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
+ * unstable_scheduleCallback方法添加回调任务
+ *
+ * 如果是同步任务push到taskQueue列表
+ * 然后schedulePerformWorkUntilDeadline开始执行taskQueue里的任务，一直遍历到任务的过期时间在当前时间之后，或者遍历任务为空
+ * 之后去timerQueue拿新的任务，加入到taskQueue，继续handleTimeout
+ *
+ *
+ * 如果是异步任务push到timerQueue列表
+ * 然后handleTimeout
+ *
  */
 
 /* eslint-disable no-var */
@@ -85,7 +95,7 @@ var currentPriorityLevel = NormalPriority;
 var isPerformingWork = false;
 
 var isHostCallbackScheduled = false;
-var isHostTimeoutScheduled = false;
+var isHostTimeoutScheduled = false;     //是否有scheduled的定时timeOut异步任务
 
 // Capture local references to native APIs, in case a polyfill overrides them.
 const localSetTimeout = typeof setTimeout === 'function' ? setTimeout : null;
@@ -127,10 +137,14 @@ function advanceTimers(currentTime) {
   }
 }
 
+/*
+* 判断taskQueue是否有任务 有就执行
+* 没有就等firstTimer.startTime - currentTime之后再去看看timerQueue是否有任务可以执行
+* */
 function handleTimeout(currentTime) {
   isHostTimeoutScheduled = false;
   advanceTimers(currentTime);
-
+  //如果没有正在执行的回调函数 就去取出taskQueue里面的任务 按顺序执行 执行完毕之后再去timerQueue取出优先级最高的任务 设定setTimeOut定时任务
   if (!isHostCallbackScheduled) {
     if (peek(taskQueue) !== null) {
       isHostCallbackScheduled = true;
@@ -143,6 +157,11 @@ function handleTimeout(currentTime) {
     }
   }
 }
+/*
+* performWorkUntilDeadline这个函数的作用是把scheduledHostCallback执行 传入两个参数
+* hasTimeRemaining = true;
+* initialTime = currentTime = getCurrentTime();
+* */
 
 function flushWork(hasTimeRemaining, initialTime) {
   if (enableProfiling) {
@@ -150,9 +169,11 @@ function flushWork(hasTimeRemaining, initialTime) {
   }
 
   // We'll need a host callback the next time work is scheduled.
+  //我们需要回调执行 已经排班的工作
   isHostCallbackScheduled = false;
   if (isHostTimeoutScheduled) {
     // We scheduled a timeout but it's no longer needed. Cancel it.
+    //我们之前排的一个timeout定时任务优先级已经下降了，取消。
     isHostTimeoutScheduled = false;
     cancelHostTimeout();
   }
@@ -173,6 +194,7 @@ function flushWork(hasTimeRemaining, initialTime) {
       }
     } else {
       // No catch in prod code path.
+      //生产环境不会有catch的情况
       return workLoop(hasTimeRemaining, initialTime);
     }
   } finally {
@@ -193,12 +215,13 @@ function workLoop(hasTimeRemaining, initialTime) {
   while (
     currentTask !== null &&
     !(enableSchedulerDebugging && isSchedulerPaused)
-  ) {
+    ) {
     if (
       currentTask.expirationTime > currentTime &&
       (!hasTimeRemaining || shouldYieldToHost())
     ) {
       // This currentTask hasn't expired, and we've reached the deadline.
+      //当前任务尚未过期，把已经过期的同步任务都调用完了，退出while循环
       break;
     }
     const callback = currentTask.callback;
@@ -232,6 +255,7 @@ function workLoop(hasTimeRemaining, initialTime) {
     currentTask = peek(taskQueue);
   }
   // Return whether there's additional work
+  //返回是否有其他工作
   if (currentTask !== null) {
     return true;
   } else {
@@ -292,7 +316,7 @@ function unstable_next(eventHandler) {
 
 function unstable_wrapCallback(callback) {
   var parentPriorityLevel = currentPriorityLevel;
-  return function() {
+  return function () {
     // This is a fork of runWithPriority, inlined for performance.
     var previousPriorityLevel = currentPriorityLevel;
     currentPriorityLevel = parentPriorityLevel;
@@ -304,6 +328,7 @@ function unstable_wrapCallback(callback) {
     }
   };
 }
+
 /*
 * priorityLevel 优先级
 * callback      回调
@@ -357,13 +382,16 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
   if (enableProfiling) {
     newTask.isQueued = false;
   }
-  //异步任务
+  //如果是异步任务push到timerQueue 如果是同步任务push到taskQueue
+  //开始时间大于现在的时间，说明是个异步任务
   if (startTime > currentTime) {
     // This is a delayed task.
-    newTask.sortIndex = startTime;
+    newTask.sortIndex = startTime;//赋值开始时间，作为排序标志
     push(timerQueue, newTask);
     if (peek(taskQueue) === null && newTask === peek(timerQueue)) {
+      //如果taskQueue没有任务，并且新加的异步任务是优先级最高的
       // All tasks are delayed, and this is the task with the earliest delay.
+      //如果有在等待的timeOut任务 取消 如果没有 打开isHostTimeoutScheduled 开始标志 然后做timeOut任务排班
       if (isHostTimeoutScheduled) {
         // Cancel an existing timeout.
         cancelHostTimeout();
@@ -371,10 +399,11 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
         isHostTimeoutScheduled = true;
       }
       // Schedule a timeout.
+      //做timeOut任务排班
       requestHostTimeout(handleTimeout, startTime - currentTime);
     }
   } else {
-    newTask.sortIndex = expirationTime;
+    newTask.sortIndex = expirationTime;//赋值过期时间，作为排序标志
     push(taskQueue, newTask);
     if (enableProfiling) {
       markTaskStart(newTask, currentTime);
@@ -504,7 +533,7 @@ function forceFrameRate(fps) {
     // Using console['error'] to evade Babel and ESLint
     console['error'](
       'forceFrameRate takes a positive int between 0 and 125, ' +
-        'forcing frame rates higher than 125 fps is not supported',
+      'forcing frame rates higher than 125 fps is not supported',
     );
     return;
   }
@@ -521,6 +550,7 @@ const performWorkUntilDeadline = () => {
     const currentTime = getCurrentTime();
     // Keep track of the start time so we can measure how long the main thread
     // has been blocked.
+    //跟踪开始时间，以便我们可以测量主线程被阻塞的时间
     startTime = currentTime;
     const hasTimeRemaining = true;
 
@@ -530,6 +560,9 @@ const performWorkUntilDeadline = () => {
     // Intentionally not using a try-catch, since that makes some debugging
     // techniques harder. Instead, if `scheduledHostCallback` errors, then
     // `hasMoreWork` will remain true, and we'll continue the work loop.
+
+    //hasMoreWork设置为true 猜测如果scheduledHostCallback顺利执行hasMoreWork会置成false
+    //如果scheduledHostCallback出错了调用schedulePerformWorkUntilDeadline继续把performWorkUntilDeadline推到异步最高优先级运行
     let hasMoreWork = true;
     try {
       hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime);
@@ -552,6 +585,7 @@ const performWorkUntilDeadline = () => {
 };
 
 let schedulePerformWorkUntilDeadline;
+
 if (typeof localSetImmediate === 'function') {
   // Node.js and old IE.
   // There's a few reasons for why we prefer setImmediate.
@@ -564,6 +598,8 @@ if (typeof localSetImmediate === 'function') {
   // But also, it runs earlier which is the semantic we want.
   // If other browsers ever implement it, it's better to use it.
   // Although both of these would be inferior to native scheduling.
+
+  //node环境或者老IE环境
   schedulePerformWorkUntilDeadline = () => {
     localSetImmediate(performWorkUntilDeadline);
   };
@@ -573,11 +609,13 @@ if (typeof localSetImmediate === 'function') {
   const channel = new MessageChannel();
   const port = channel.port2;
   channel.port1.onmessage = performWorkUntilDeadline;
+  //普通浏览器或者worker环境
   schedulePerformWorkUntilDeadline = () => {
     port.postMessage(null);
   };
 } else {
   // We should only fallback here in non-browser environments.
+  //其他情况 用setTimeOut代替
   schedulePerformWorkUntilDeadline = () => {
     localSetTimeout(performWorkUntilDeadline, 0);
   };
@@ -585,8 +623,13 @@ if (typeof localSetImmediate === 'function') {
 
 function requestHostCallback(callback) {
   scheduledHostCallback = callback;
+  //如果是true说明有在执行的任务
   if (!isMessageLoopRunning) {
     isMessageLoopRunning = true;
+    //把performWorkUntilDeadline这个函数设定优先级最高的定时任务
+    //performWorkUntilDeadline这个函数的作用是把scheduledHostCallback执行 传入两个参数
+    //hasTimeRemaining = true;
+    //currentTime = getCurrentTime();
     schedulePerformWorkUntilDeadline();
   }
 }
@@ -627,7 +670,7 @@ export {
 
 export const unstable_Profiling = enableProfiling
   ? {
-      startLoggingProfilingEvents,
-      stopLoggingProfilingEvents,
-    }
+    startLoggingProfilingEvents,
+    stopLoggingProfilingEvents,
+  }
   : null;
