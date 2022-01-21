@@ -113,17 +113,19 @@ if (enableCreateEventHandleAPI) {
 
 function registerSimpleEvent(domEventName, reactName) {
   topLevelEventsToReactNames.set(domEventName, reactName);
+                      //onClick                 [click]
   registerTwoPhaseEvent(reactName, [domEventName]);
 }
 
 export function registerSimpleEvents() {
   for (let i = 0; i < simpleEventPluginEvents.length; i++) {
-    const eventName = ((simpleEventPluginEvents[i]: any): string);
-    const domEventName = ((eventName.toLowerCase(): any): DOMEventName);
-    const capitalizedEvent = eventName[0].toUpperCase() + eventName.slice(1);
-    registerSimpleEvent(domEventName, 'on' + capitalizedEvent);
+    const eventName = ((simpleEventPluginEvents[i]: any): string);             //click
+    const domEventName = ((eventName.toLowerCase(): any): DOMEventName);       //click
+    const capitalizedEvent = eventName[0].toUpperCase() + eventName.slice(1);  //Click
+    registerSimpleEvent(domEventName, 'on' + capitalizedEvent);     //click onClick
   }
   // Special cases where event names don't match.
+  // 事件名称不匹配的特殊情况
   registerSimpleEvent(ANIMATION_END, 'onAnimationEnd');
   registerSimpleEvent(ANIMATION_ITERATION, 'onAnimationIteration');
   registerSimpleEvent(ANIMATION_START, 'onAnimationStart');

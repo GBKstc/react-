@@ -20,7 +20,7 @@ import type {
   ReactSyntheticEvent,
 } from './ReactSyntheticEventType';
 import type {Fiber} from 'react-reconciler/src/ReactInternalTypes';
-
+//事件注册
 import {allNativeEvents} from './EventRegistry';
 import {
   IS_CAPTURE_PHASE,
