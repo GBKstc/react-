@@ -31,12 +31,17 @@ export const registrationNameDependencies = {};
  */
 export const possibleRegistrationNames = __DEV__ ? {} : (null: any);
 // Trust the developer to only use possibleRegistrationNames in __DEV__
-
+/*
+* registrationName    事件注册的名称                   onClick
+* dependencies        触发事件的原始dom事件名称的列表    click
+* */
 export function registerTwoPhaseEvent(
   registrationName: string,
   dependencies: Array<DOMEventName>,
 ): void {
+  //冒泡阶段
   registerDirectEvent(registrationName, dependencies);
+  //捕获阶段     capture（捕获）
   registerDirectEvent(registrationName + 'Capture', dependencies);
 }
 

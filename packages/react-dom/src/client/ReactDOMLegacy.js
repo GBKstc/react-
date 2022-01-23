@@ -53,9 +53,9 @@ if (__DEV__) {
         if (hostInstance.parentNode !== container) {
           console.error(
             'render(...): It looks like the React-rendered content of this ' +
-              'container was removed without using React. This is not ' +
-              'supported and will cause errors. Instead, call ' +
-              'ReactDOM.unmountComponentAtNode to empty a container.',
+            'container was removed without using React. This is not ' +
+            'supported and will cause errors. Instead, call ' +
+            'ReactDOM.unmountComponentAtNode to empty a container.',
           );
         }
       }
@@ -68,9 +68,9 @@ if (__DEV__) {
     if (hasNonRootReactChild && !isRootRenderedBySomeReact) {
       console.error(
         'render(...): Replacing React-rendered children with a new root ' +
-          'component. If you intended to update the children of this node, ' +
-          'you should instead have the existing children update their state ' +
-          'and render the new components instead of calling ReactDOM.render.',
+        'component. If you intended to update the children of this node, ' +
+        'you should instead have the existing children update their state ' +
+        'and render the new components instead of calling ReactDOM.render.',
       );
     }
 
@@ -81,10 +81,10 @@ if (__DEV__) {
     ) {
       console.error(
         'render(): Rendering components directly into document.body is ' +
-          'discouraged, since its children are often manipulated by third-party ' +
-          'scripts and browser extensions. This may lead to subtle ' +
-          'reconciliation issues. Try rendering into a container element created ' +
-          'for your app.',
+        'discouraged, since its children are often manipulated by third-party ' +
+        'scripts and browser extensions. This may lead to subtle ' +
+        'reconciliation issues. Try rendering into a container element created ' +
+        'for your app.',
       );
     }
   };
@@ -102,18 +102,23 @@ function getReactRootElementInContainer(container: any) {
   }
 }
 
+//从DOMContainer创建根目录
 function legacyCreateRootFromDOMContainer(
   container: Container,
   forceHydrate: boolean,
 ): FiberRoot {
   // First clear any existing content.
+  //第一次渲染，清楚所有子节点
   if (!forceHydrate) {
     let rootSibling;
     while ((rootSibling = container.lastChild)) {
       container.removeChild(rootSibling);
     }
   }
-
+  //创建根节点
+  //root.current = uninitializedFiber;
+  //uninitializedFiber.stateNode = root;
+  //root是FiberRoot root.current是目前页面上渲染的FiberTree
   const root = createContainer(
     container,
     LegacyRoot,
@@ -123,10 +128,12 @@ function legacyCreateRootFromDOMContainer(
     false, // concurrentUpdatesByDefaultOverride,
     '', // identiferPrefix
   );
+  //设置当前页面的container为root.current
   markContainerAsRoot(root.current, container);
 
   const rootContainerElement =
     container.nodeType === COMMENT_NODE ? container.parentNode : container;
+  //监听所有受支持的事件
   listenToAllSupportedEvents(rootContainerElement);
 
   return root;
@@ -137,7 +144,7 @@ function warnOnInvalidCallback(callback: mixed, callerName: string): void {
     if (callback !== null && typeof callback !== 'function') {
       console.error(
         '%s(...): Expected the last optional `callback` argument to be a ' +
-          'function. Instead received: %s.',
+        'function. Instead received: %s.',
         callerName,
         callback,
       );
@@ -159,6 +166,7 @@ function legacyRenderSubtreeIntoContainer(
 
   let root = container._reactRootContainer;
   let fiberRoot: FiberRoot;
+  //首次渲染
   if (!root) {
     // Initial mount
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
@@ -168,7 +176,7 @@ function legacyRenderSubtreeIntoContainer(
     fiberRoot = root;
     if (typeof callback === 'function') {
       const originalCallback = callback;
-      callback = function() {
+      callback = function () {
         const instance = getPublicRootInstance(fiberRoot);
         originalCallback.call(instance);
       };
@@ -181,7 +189,7 @@ function legacyRenderSubtreeIntoContainer(
     fiberRoot = root;
     if (typeof callback === 'function') {
       const originalCallback = callback;
-      callback = function() {
+      callback = function () {
         const instance = getPublicRootInstance(fiberRoot);
         originalCallback.call(instance);
       };
@@ -202,10 +210,10 @@ export function findDOMNode(
       if (!warnedAboutRefsInRender) {
         console.error(
           '%s is accessing findDOMNode inside its render(). ' +
-            'render() should be a pure function of props and state. It should ' +
-            'never access something that requires stale data from the previous ' +
-            'render, such as refs. Move this logic to componentDidMount and ' +
-            'componentDidUpdate instead.',
+          'render() should be a pure function of props and state. It should ' +
+          'never access something that requires stale data from the previous ' +
+          'render, such as refs. Move this logic to componentDidMount and ' +
+          'componentDidUpdate instead.',
           getComponentNameFromType(owner.type) || 'A component',
         );
       }
@@ -232,9 +240,9 @@ export function hydrate(
   if (__DEV__) {
     console.error(
       'ReactDOM.hydrate is no longer supported in React 18. Use hydrateRoot ' +
-        'instead. Until you switch to the new API, your app will behave as ' +
-        "if it's running React 17. Learn " +
-        'more: https://reactjs.org/link/switch-to-createroot',
+      'instead. Until you switch to the new API, your app will behave as ' +
+      "if it's running React 17. Learn " +
+      'more: https://reactjs.org/link/switch-to-createroot',
     );
   }
 
@@ -249,8 +257,8 @@ export function hydrate(
     if (isModernRoot) {
       console.error(
         'You are calling ReactDOM.hydrate() on a container that was previously ' +
-          'passed to ReactDOM.createRoot(). This is not supported. ' +
-          'Did you mean to call hydrateRoot(container, element)?',
+        'passed to ReactDOM.createRoot(). This is not supported. ' +
+        'Did you mean to call hydrateRoot(container, element)?',
       );
     }
   }
@@ -264,17 +272,25 @@ export function hydrate(
   );
 }
 
+/*
+* ReactDOM.render(
+*   <div></div>,
+*   document.getElementById('root'),
+*   ()=>{}
+* )
+*
+* */
 export function render(
-  element: React$Element<any>,
-  container: Container,
-  callback: ?Function,
+  element: React$Element<any>,  //<div></div>
+  container: Container,         //document.getElementById("root")
+  callback: ?Function,          //回调函数
 ) {
   if (__DEV__) {
     console.error(
       'ReactDOM.render is no longer supported in React 18. Use createRoot ' +
-        'instead. Until you switch to the new API, your app will behave as ' +
-        "if it's running React 17. Learn " +
-        'more: https://reactjs.org/link/switch-to-createroot',
+      'instead. Until you switch to the new API, your app will behave as ' +
+      "if it's running React 17. Learn " +
+      'more: https://reactjs.org/link/switch-to-createroot',
     );
   }
 
@@ -289,8 +305,8 @@ export function render(
     if (isModernRoot) {
       console.error(
         'You are calling ReactDOM.render() on a container that was previously ' +
-          'passed to ReactDOM.createRoot(). This is not supported. ' +
-          'Did you mean to call root.render(element)?',
+        'passed to ReactDOM.createRoot(). This is not supported. ' +
+        'Did you mean to call root.render(element)?',
       );
     }
   }
@@ -340,7 +356,7 @@ export function unmountComponentAtNode(container: Container) {
     if (isModernRoot) {
       console.error(
         'You are calling ReactDOM.unmountComponentAtNode() on a container that was previously ' +
-          'passed to ReactDOM.createRoot(). This is not supported. Did you mean to call root.unmount()?',
+        'passed to ReactDOM.createRoot(). This is not supported. Did you mean to call root.unmount()?',
       );
     }
   }
@@ -352,7 +368,7 @@ export function unmountComponentAtNode(container: Container) {
       if (renderedByDifferentReact) {
         console.error(
           "unmountComponentAtNode(): The node you're attempting to unmount " +
-            'was rendered by another copy of React.',
+          'was rendered by another copy of React.',
         );
       }
     }
@@ -382,12 +398,12 @@ export function unmountComponentAtNode(container: Container) {
       if (hasNonRootReactChild) {
         console.error(
           "unmountComponentAtNode(): The node you're attempting to unmount " +
-            'was rendered by React and is not a top-level container. %s',
+          'was rendered by React and is not a top-level container. %s',
           isContainerReactRoot
             ? 'You may have accidentally passed in a React root node instead ' +
-                'of its container.'
+            'of its container.'
             : 'Instead, have the parent component update its state and ' +
-                'rerender in order to remove this component.',
+            'rerender in order to remove this component.',
         );
       }
     }

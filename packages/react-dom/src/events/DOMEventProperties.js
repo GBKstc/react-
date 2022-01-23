@@ -113,7 +113,7 @@ if (enableCreateEventHandleAPI) {
 
 function registerSimpleEvent(domEventName, reactName) {
   topLevelEventsToReactNames.set(domEventName, reactName);
-                      //onClick                 [click]
+                        //onClick               [click]
   registerTwoPhaseEvent(reactName, [domEventName]);
 }
 

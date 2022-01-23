@@ -84,7 +84,7 @@ type DispatchEntry = {|
 |};
 
 export type DispatchQueue = Array<DispatchEntry>;
-
+//各种事件的注册
 // TODO: remove top-level side effect.
 SimpleEventPlugin.registerEvents();
 EnterLeaveEventPlugin.registerEvents();
@@ -301,7 +301,7 @@ export function listenToNonDelegatedEvent(
     if (!nonDelegatedEvents.has(domEventName)) {
       console.error(
         'Did not expect a listenToNonDelegatedEvent() call for "%s". ' +
-          'This is a bug in React. Please file an issue.',
+        'This is a bug in React. Please file an issue.',
         domEventName,
       );
     }
@@ -323,6 +323,11 @@ export function listenToNonDelegatedEvent(
   }
 }
 
+/*
+* domEventName           事件名称
+* isCapturePhaseListener 是否冒泡
+* target                 绑定的对象
+* */
 export function listenToNativeEvent(
   domEventName: DOMEventName,
   isCapturePhaseListener: boolean,
@@ -332,7 +337,7 @@ export function listenToNativeEvent(
     if (nonDelegatedEvents.has(domEventName) && !isCapturePhaseListener) {
       console.error(
         'Did not expect a listenToNativeEvent() call for "%s" in the bubble phase. ' +
-          'This is a bug in React. Please file an issue.',
+        'This is a bug in React. Please file an issue.',
         domEventName,
       );
     }
@@ -377,18 +382,21 @@ export function listenToNativeEventForNonManagedEventTarget(
   }
 }
 
+//_reactListening+34位随机数
 const listeningMarker =
   '_reactListening' +
   Math.random()
     .toString(36)
     .slice(2);
-
+//const rootContainerElement =
+//     container.nodeType === COMMENT_NODE ? container.parentNode : container;
 export function listenToAllSupportedEvents(rootContainerElement: EventTarget) {
   if (!(rootContainerElement: any)[listeningMarker]) {
     (rootContainerElement: any)[listeningMarker] = true;
     allNativeEvents.forEach(domEventName => {
       // We handle selectionchange separately because it
       // doesn't bubble and needs to be on the document.
+      //我们单独处理selectionchange，因为它不冒泡，需要放在文档上。
       if (domEventName !== 'selectionchange') {
         if (!nonDelegatedEvents.has(domEventName)) {
           listenToNativeEvent(domEventName, false, rootContainerElement);
@@ -403,6 +411,7 @@ export function listenToAllSupportedEvents(rootContainerElement: EventTarget) {
     if (ownerDocument !== null) {
       // The selectionchange event also needs deduplication
       // but it is attached to the document.
+      // selectionchange事件只能绑定在document上
       if (!(ownerDocument: any)[listeningMarker]) {
         (ownerDocument: any)[listeningMarker] = true;
         listenToNativeEvent('selectionchange', false, ownerDocument);
@@ -418,6 +427,8 @@ function addTrappedEventListener(
   isCapturePhaseListener: boolean,
   isDeferredListenerForLegacyFBSupport?: boolean,
 ) {
+  //根据优先级创建事件监听的容器
+  //给不同的事件放置不同的优先级
   let listener = createEventListenerWrapperWithPriority(
     targetContainer,
     domEventName,
@@ -461,7 +472,7 @@ function addTrappedEventListener(
   // need support for such browsers.
   if (enableLegacyFBSupport && isDeferredListenerForLegacyFBSupport) {
     const originalListener = listener;
-    listener = function(...p) {
+    listener = function (...p) {
       removeEventListener(
         targetContainer,
         domEventName,
