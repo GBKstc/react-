@@ -345,7 +345,7 @@ export function listenToNativeEvent(
 
   let eventSystemFlags = 0;
   if (isCapturePhaseListener) {
-    eventSystemFlags |= IS_CAPTURE_PHASE;
+    eventSystemFlags |= IS_CAPTURE_PHASE; //000000|000100 => 000100
   }
   addTrappedEventListener(
     target,
@@ -429,6 +429,8 @@ function addTrappedEventListener(
 ) {
   //根据优先级创建事件监听的容器
   //给不同的事件放置不同的优先级
+  //createEventListenerWrapperWithPriority返回的是一个函数 参数是nativeEvent(原生事件)
+  //
   let listener = createEventListenerWrapperWithPriority(
     targetContainer,
     domEventName,

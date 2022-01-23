@@ -87,7 +87,7 @@ export function createEventListenerWrapperWithPriority(
   domEventName: DOMEventName,
   eventSystemFlags: EventSystemFlags,
 ): Function {
-  const eventPriority = getEventPriority(domEventName);
+  const eventPriority = getEventPriority(domEventName); //根据不同的事件获取对应的优先级
   let listenerWrapper;
   switch (eventPriority) {
     case DiscreteEventPriority:
@@ -144,7 +144,7 @@ function dispatchContinuousEvent(
     ReactCurrentBatchConfig.transition = prevTransition;
   }
 }
-
+//调度事件
 export function dispatchEvent(
   domEventName: DOMEventName,
   eventSystemFlags: EventSystemFlags,
@@ -154,6 +154,7 @@ export function dispatchEvent(
   if (!_enabled) {
     return;
   }
+  //启用冒泡阶段
   if (enableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay) {
     dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay(
       domEventName,
@@ -182,8 +183,14 @@ function dispatchEventOriginal(
   // but now we use different bubble and capture handlers.
   // In eager mode, we attach capture listeners early, so we need
   // to filter them out until we fix the logic to handle them correctly.
+  /*
+  * 因为我们过去常常在冒泡处理程序中执行此操作
+    但现在我们使用不同的冒泡和捕获处理程序。
+    在eager模式下，我们会提前附加捕获侦听器，因此需要
+    过滤掉它们，直到我们修正了正确处理它们的逻辑。
+  */
   const allowReplay = (eventSystemFlags & IS_CAPTURE_PHASE) === 0;
-
+  //已经有了QueuedDiscreteEvents并且事件是离散事件
   if (
     allowReplay &&
     hasQueuedDiscreteEvents() &&
@@ -192,6 +199,18 @@ function dispatchEventOriginal(
     // If we already have a queue of discrete events, and this is another discrete
     // event, then we can't dispatch it regardless of its target, since they
     // need to dispatch in order.
+    //如果我们已经有一个离散事件队列，并且这是另一个离散事件，
+    //那么不管触发对象是什么，我们都不能派发这个事件，
+    //因为他们需要按顺序发送
+    //queuedDiscreteEvents里面添加事件
+    /*{
+       blockedOn,
+       domEventName,
+       eventSystemFlags,
+       nativeEvent,
+       targetContainers: [targetContainer],
+     }
+    * */
     queueDiscreteEvent(
       null, // Flags that we're not actually blocked on anything as far as we know.
       domEventName,
@@ -466,7 +485,7 @@ export function getEventPriority(domEventName: DOMEventName): * {
     case 'popstate':
     case 'select':
     case 'selectstart':
-      return DiscreteEventPriority;
+      return DiscreteEventPriority; //离散事件优先级
     case 'drag':
     case 'dragenter':
     case 'dragexit':
@@ -488,22 +507,27 @@ export function getEventPriority(domEventName: DOMEventName): * {
     case 'mouseleave':
     case 'pointerenter':
     case 'pointerleave':
-      return ContinuousEventPriority;
+      return ContinuousEventPriority;  //连续事件优先级
+    //暂停JS执行，将主线程还给浏览器，让浏览器有机会更新页面
+    //在未来某个时刻继续调度任务，执行上次还没有完成的任务
+    //要满足这两点就需要调度一个宏任务，因为宏任务是在下次事件循环中执行
+    //而微任务是在本次页面更新前执行，与同步执行无异，不会让出主线程。
+    //scheduler调度器用massage来控制调度
     case 'message': {
       // We might be in the Scheduler callback.
       // Eventually this mechanism will be replaced by a check
       // of the current priority on the native scheduler.
       const schedulerPriority = getCurrentSchedulerPriorityLevel();
       switch (schedulerPriority) {
-        case ImmediateSchedulerPriority:
+        case ImmediateSchedulerPriority:     //即时调度程序优先级
           return DiscreteEventPriority;
-        case UserBlockingSchedulerPriority:
+        case UserBlockingSchedulerPriority:  //用户阻塞调度程序优先级
           return ContinuousEventPriority;
-        case NormalSchedulerPriority:
-        case LowSchedulerPriority:
+        case NormalSchedulerPriority:        //正常调度程序优先级
+        case LowSchedulerPriority:           //低优先级
           // TODO: Handle LowSchedulerPriority, somehow. Maybe the same lane as hydration.
           return DefaultEventPriority;
-        case IdleSchedulerPriority:
+        case IdleSchedulerPriority:          //空闲调度程序优先级
           return IdleEventPriority;
         default:
           return DefaultEventPriority;
