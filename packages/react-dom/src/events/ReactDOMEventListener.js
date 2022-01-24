@@ -189,6 +189,7 @@ function dispatchEventOriginal(
     在eager模式下，我们会提前附加捕获侦听器，因此需要
     过滤掉它们，直到我们修正了正确处理它们的逻辑。
   */
+  //allowReplay 允许重发
   const allowReplay = (eventSystemFlags & IS_CAPTURE_PHASE) === 0;
   //已经有了QueuedDiscreteEvents并且事件是离散事件
   if (
