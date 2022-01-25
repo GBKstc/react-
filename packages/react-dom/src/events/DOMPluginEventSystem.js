@@ -446,6 +446,10 @@ function addTrappedEventListener(
     // the performance wins from the change. So we emulate
     // the existing behavior manually on the roots now.
     // https://github.com/facebook/react/issues/19651
+    // 浏览器引入了干预措施，使这些事件默认绑定在document上,
+    // React不再将它们绑定到文档，
+    // 但现在更改它将取消更改带来的性能优势。
+    // 所以我们现在在根上手动模拟现有的行为。
     if (
       domEventName === 'touchstart' ||
       domEventName === 'touchmove' ||
@@ -472,6 +476,7 @@ function addTrappedEventListener(
   // browsers do not support this today, and given this is
   // to support legacy code patterns, it's likely they'll
   // need support for such browsers.
+  //添加一次性的事件，触发之后就移除
   if (enableLegacyFBSupport && isDeferredListenerForLegacyFBSupport) {
     const originalListener = listener;
     listener = function (...p) {
