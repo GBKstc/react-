@@ -144,6 +144,7 @@ function dispatchContinuousEvent(
     ReactCurrentBatchConfig.transition = prevTransition;
   }
 }
+
 //调度事件
 export function dispatchEvent(
   domEventName: DOMEventName,
@@ -191,7 +192,7 @@ function dispatchEventOriginal(
   */
   //allowReplay 允许重发
   const allowReplay = (eventSystemFlags & IS_CAPTURE_PHASE) === 0;
-  //已经有了QueuedDiscreteEvents并且事件是离散事件
+  //已经有了QueuedDiscreteEvents并且事件是可以重发的离散事件
   if (
     allowReplay &&
     hasQueuedDiscreteEvents() &&

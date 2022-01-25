@@ -472,6 +472,11 @@ function addTrappedEventListener(
   // browsers do not support this today, and given this is
   // to support legacy code patterns, it's likely they'll
   // need support for such browsers.
+  //当legacyFBSupport启用时，它适用于我们希望向容器添加一次性事件侦听器的情况。
+  //由于需要提供与内部FB www事件工具的兼容性，因此只能与enableLegacyFBSupport一起使用。
+  //这是通过在事件侦听器被调用后立即删除它来实现的。
+  //我们也可以尝试在addEventListener上使用{once:true}参数，但这需要支持，
+  //而且一些浏览器现在不支持这个，考虑到这是为了支持遗留代码模式，他们可能需要对此类浏览器的支持。
   if (enableLegacyFBSupport && isDeferredListenerForLegacyFBSupport) {
     const originalListener = listener;
     listener = function (...p) {
