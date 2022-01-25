@@ -82,6 +82,23 @@ export function createEventListenerWrapper(
   );
 }
 
+/*
+*DiscreteEventPriority
+  离散事件，如 click、keydown、focusin 等，这些事件的触发不是连续的，优先级最高
+  对应的listener是 dispatchDiscreteEvent
+ ContinuousEventPriority
+  阻塞事件，如 drag、mousemove、scroll 等，这些事件的特点是连续触发，会阻塞渲染，优先级为适中
+  对应的listener是 dispatchContinuousEvent
+ DefaultEventPriority
+  如 load、animation 等事件，优先级最低
+  对应的listener是 dispatchEvent
+
+ 作者：紫圣
+ 链接：https://juejin.cn/post/7031538616346083359
+ 来源：稀土掘金
+ 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+ */
+
 export function createEventListenerWrapperWithPriority(
   targetContainer: EventTarget,
   domEventName: DOMEventName,
@@ -144,6 +161,7 @@ function dispatchContinuousEvent(
     ReactCurrentBatchConfig.transition = prevTransition;
   }
 }
+//https://juejin.cn/post/7031538616346083359
 //调度事件
 export function dispatchEvent(
   domEventName: DOMEventName,
@@ -189,8 +207,9 @@ function dispatchEventOriginal(
     在eager模式下，我们会提前附加捕获侦听器，因此需要
     过滤掉它们，直到我们修正了正确处理它们的逻辑。
   */
+  //allowReplay 允许重发
   const allowReplay = (eventSystemFlags & IS_CAPTURE_PHASE) === 0;
-  //已经有了QueuedDiscreteEvents并且事件是离散事件
+  //已经有了QueuedDiscreteEvents并且事件是可以重发的离散事件
   if (
     allowReplay &&
     hasQueuedDiscreteEvents() &&
@@ -200,8 +219,8 @@ function dispatchEventOriginal(
     // event, then we can't dispatch it regardless of its target, since they
     // need to dispatch in order.
     //如果我们已经有一个离散事件队列，并且这是另一个离散事件，
-    //那么不管触发对象是什么，我们都不能派发这个事件，
-    //因为他们需要按顺序发送
+    //那么不管触发对象是什么，我们都不能调度这个事件，而是添加到DiscreteEvent队列
+    //因为他们需要按优先级顺序调度
     //queuedDiscreteEvents里面添加事件
     /*{
        blockedOn,
@@ -211,6 +230,7 @@ function dispatchEventOriginal(
        targetContainers: [targetContainer],
      }
     * */
+    //queueDiscreteEvent 将会创建一个可重播事件，并将其添加到「要重播的DiscreteEvent队列」中
     queueDiscreteEvent(
       null, // Flags that we're not actually blocked on anything as far as we know.
       domEventName,
@@ -220,7 +240,7 @@ function dispatchEventOriginal(
     );
     return;
   }
-
+  // 尝试调度事件，如果被阻止，则返回 SuspenseInstance 或 Container
   const blockedOn = findInstanceBlockingEvent(
     domEventName,
     eventSystemFlags,
@@ -228,6 +248,9 @@ function dispatchEventOriginal(
     nativeEvent,
   );
   if (blockedOn === null) {
+    // We successfully dispatched this event.
+    //我们成功的调度了事件
+    //通过插件系统，派发事件
     dispatchEventForPluginEventSystem(
       domEventName,
       eventSystemFlags,
@@ -236,6 +259,7 @@ function dispatchEventOriginal(
       targetContainer,
     );
     if (allowReplay) {
+      // 将连续触发类型的事件重置为无事件
       clearIfContinuousEvent(domEventName, nativeEvent);
     }
     return;
@@ -244,6 +268,7 @@ function dispatchEventOriginal(
   if (allowReplay) {
     if (isDiscreteEventThatRequiresHydration(domEventName)) {
       // This this to be replayed later once the target is available.
+      //queueDiscreteEvent 将会创建一个可重播事件，并将其添加到「要重播的DiscreteEvent队列」中
       queueDiscreteEvent(
         blockedOn,
         domEventName,
@@ -266,6 +291,7 @@ function dispatchEventOriginal(
     }
     // We need to clear only if we didn't queue because
     // queueing is accumulative.
+    // 将连续触发类型的事件重置为无事件
     clearIfContinuousEvent(domEventName, nativeEvent);
   }
 
@@ -370,6 +396,26 @@ export let return_targetInst = null;
 
 // Returns a SuspenseInstance or Container if it's blocked.
 // The return_targetInst field above is conceptually part of the return value.
+// 尝试调度事件，如果被阻止，则返回 SuspenseInstance 或 Container
+/*
+* 函数的作用是尝试调度事件，如果调度事件失败，则返回 SuspenseInstance 或 根DOM容器。在 attemptToDispatchEvent 中，主要做了3件事：
+ 1、定位触发事件的原生DOM节点
+ const nativeEventTarget = getEventTarget(nativeEvent);
+
+ 2、获取与原生DOM节点对应的fiber节点
+ let targetInst = getClosestInstanceFromNode(nativeEventTarget);
+
+ 在获取与原生DOM节点对应的fiber节点的过程中，
+ 如果fiber树已经被卸载、组件是SuspenseComponent类型、组件是根节点、
+ 原生DOM对应的fiber节点最近的fiber节点和原生DOM对应的fiber节点不是同一个节点，
+ 这四种情况下targetInst 将会被重置为 null 。
+ 通过上面两步，将原生事件和 fiber树关联了起来。
+
+ 作者：紫圣
+ 链接：https://juejin.cn/post/7031538616346083359
+ 来源：稀土掘金
+ 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+* */
 export function findInstanceBlockingEvent(
   domEventName: DOMEventName,
   eventSystemFlags: EventSystemFlags,
@@ -379,18 +425,28 @@ export function findInstanceBlockingEvent(
   // TODO: Warn if _enabled is false.
 
   return_targetInst = null;
-
+  // 1、获取实际触发事件的原生DOM
   const nativeEventTarget = getEventTarget(nativeEvent);
+  // 2、获取与原生DOM对应的fiber节点
   let targetInst = getClosestInstanceFromNode(nativeEventTarget);
-
+// fiber树已经被卸载
+// SuspenseComponent类型的组件、根节点
+// 原生DOM对应的fiber节点最近的fiber节点
+// 原生DOM对应的fiber节点
+// 上述四种情况下将 targetInst 置为 null
   if (targetInst !== null) {
+    // 从fiber树上获取与原生DOM对应的fiber节点最近的fiber节点
     const nearestMounted = getNearestMountedFiber(targetInst);
+
     if (nearestMounted === null) {
       // This tree has been unmounted already. Dispatch without a target.
+      // fiber树已经被卸载
       targetInst = null;
     } else {
+      // 获取组件的类型
       const tag = nearestMounted.tag;
       if (tag === SuspenseComponent) {
+        // 组件类型为 SuspenseComponent
         const instance = getSuspenseInstanceFromFiber(nearestMounted);
         if (instance !== null) {
           // Queue the event to be replayed later. Abort dispatching since we
@@ -404,18 +460,23 @@ export function findInstanceBlockingEvent(
         // TODO: Warn.
         targetInst = null;
       } else if (tag === HostRoot) {
+        //为根节点
         const root: FiberRoot = nearestMounted.stateNode;
         if (root.isDehydrated) {
           // If this happens during a replay something went wrong and it might block
           // the whole system.
+          //如果在重播过程中发生这种情况，就会出现问题，可能会阻塞整个系统。
           return getContainerFromFiber(nearestMounted);
         }
         targetInst = null;
       } else if (nearestMounted !== targetInst) {
+        //原生DOM对应的fiber节点
         // If we get an event (ex: img onload) before committing that
         // component's mount, ignore it for now (that is, treat it as if it was an
         // event on a non-React tree). We might also consider queueing events and
         // dispatching them after the mount.
+        //如果我们在提交组件挂载之前收到一个事件（例如：img onload），暂时忽略它。
+        //我们也可以考虑加入queueEvents事件列表，在mount之后dispatch
         targetInst = null;
       }
     }

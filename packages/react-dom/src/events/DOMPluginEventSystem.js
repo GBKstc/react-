@@ -85,13 +85,24 @@ type DispatchEntry = {|
 
 export type DispatchQueue = Array<DispatchEntry>;
 //各种事件的注册
+// 通过插件注册事件
+// 原生DOM事件名称与React事件名称映射关系
+// SimpleEventPlugin 是事件系统的基本功能，是事件系统的核心
+// 其它插件本质上是 polyfills，在没有这些 polyfill 插件的情况下可允许发布 React 的构建
 // TODO: remove top-level side effect.
 SimpleEventPlugin.registerEvents();
 EnterLeaveEventPlugin.registerEvents();
 ChangeEventPlugin.registerEvents();
 SelectEventPlugin.registerEvents();
 BeforeInputEventPlugin.registerEvents();
+/*
+* 在 DOMPluginEventSystem.js 文件的 extractEvents 函数中，
+* 主要调用了React的 5 种事件插件来收集listener。
+* 其中 SimpleEventPlugin 插件是React事件系统的核心，
+* 提供了React事件系统的基本功能，其它四个事件插件本质上是 polyfills，
+* 在没有这些 polyfill 插件的情况下可允许发布 React 的构建。
 
+* */
 function extractEvents(
   dispatchQueue: DispatchQueue,
   domEventName: DOMEventName,
@@ -107,6 +118,7 @@ function extractEvents(
   // should probably be inlined somewhere and have its logic
   // be core the to event system. This would potentially allow
   // us to ship builds of React without the polyfilled plugins below.
+  // SimpleEventPlugin 是事件系统的基本功能，是事件系统的核心
   SimpleEventPlugin.extractEvents(
     dispatchQueue,
     domEventName,
@@ -136,6 +148,7 @@ function extractEvents(
   // that might cause other unknown side-effects that we
   // can't foresee right now.
   if (shouldProcessPolyfillPlugins) {
+    // 下面的几类插件本质上是 polyfills，在没有这些 polyfill 插件的情况下可允许发布 React 的构建
     EnterLeaveEventPlugin.extractEvents(
       dispatchQueue,
       domEventName,
@@ -271,7 +284,18 @@ export function processDispatchQueue(
   // This would be a good time to rethrow if any of the event handlers threw.
   rethrowCaughtError();
 }
+/*
+* 在 dispatchEventsForPlugins 函数中，做了4件事情：
+ 首先调用getEventTarget函数获取触发事件的原生DOM节点。
+ 然后定义dispatchQueue队列，用于存储所有的listener。
+ 接着调用extractEvents方法收集所有的listener，存入dispatchQueue队列中。
+ 最后调用processDispatchQueue函数，执行事件派发。
 
+ 作者：紫圣
+ 链接：https://juejin.cn/post/7031538616346083359
+ 来源：稀土掘金
+ 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+* */
 function dispatchEventsForPlugins(
   domEventName: DOMEventName,
   eventSystemFlags: EventSystemFlags,
@@ -279,8 +303,11 @@ function dispatchEventsForPlugins(
   targetInst: null | Fiber,
   targetContainer: EventTarget,
 ): void {
+  // 1、定位触发事件的原生DOM节点
   const nativeEventTarget = getEventTarget(nativeEvent);
+  // 2、批量处理队列
   const dispatchQueue: DispatchQueue = [];
+  // 3、收集 所有的listener
   extractEvents(
     dispatchQueue,
     domEventName,
@@ -290,6 +317,7 @@ function dispatchEventsForPlugins(
     eventSystemFlags,
     targetContainer,
   );
+  // 4、执行派发
   processDispatchQueue(dispatchQueue, eventSystemFlags);
 }
 
@@ -446,10 +474,10 @@ function addTrappedEventListener(
     // the performance wins from the change. So we emulate
     // the existing behavior manually on the roots now.
     // https://github.com/facebook/react/issues/19651
-    // 浏览器引入了干预措施，使这些事件默认绑定在document上,
-    // React不再将它们绑定到文档，
-    // 但现在更改它将取消更改带来的性能优势。
-    // 所以我们现在在根上手动模拟现有的行为。
+    // 浏览器引入了干预措施，使这些事件绑定在document上的时候，默认不会执行preventDefault方法,
+    // React没有将它们绑定到document上，
+    // 但如果不默认不执行preventDefault，将取消更改带来的性能优势。
+    // 所以我们现在在根上手动模拟现有这个的行为。
     if (
       domEventName === 'touchstart' ||
       domEventName === 'touchmove' ||
@@ -476,7 +504,14 @@ function addTrappedEventListener(
   // browsers do not support this today, and given this is
   // to support legacy code patterns, it's likely they'll
   // need support for such browsers.
-  //添加一次性的事件，触发之后就移除
+  //添加一次性的事件，触发之后就移除。
+  //当legacyFBSupport启用时，它适用于我们希望向容器添加一次性事件侦听器的情况。
+  //由于需要提供与内部FB www事件工具的兼容性，因此只能与enableLegacyFBSupport一起使用。
+  //这是通过在事件侦听器被调用后立即删除它来实现的。
+  //我们也可以尝试在addEventListener上使用{once:true}参数，但这需要支持，
+  //而且一些浏览器现在不支持这个，考虑到这是为了支持遗留代码模式，他们可能需要对此类浏览器的支持。
+
+  //简单来说 就是为了做兼容 一次性事件侦听器的情况
   if (enableLegacyFBSupport && isDeferredListenerForLegacyFBSupport) {
     const originalListener = listener;
     listener = function (...p) {
@@ -550,7 +585,17 @@ function isMatchingRootContainer(
       grandContainer.parentNode === targetContainer)
   );
 }
+/*
+* dispatchEventForPluginEventSystem函数的作用是通过事件插件系统派发事件。
+* 在该函数中，为了兼容16以下的版本，会把click事件监听器注册到 document 上。
+* 然后从当前触发事件的DOM节点开始，向上遍历fiber树，找到根DOM容器，
+* 最后调用dispatchEventsForPlugins函数来派发事件。
 
+ 作者：紫圣
+ 链接：https://juejin.cn/post/7031538616346083359
+ 来源：稀土掘金
+ 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。*/
+// 通过插件系统，派发事件
 export function dispatchEventForPluginEventSystem(
   domEventName: DOMEventName,
   eventSystemFlags: EventSystemFlags,
@@ -568,6 +613,7 @@ export function dispatchEventForPluginEventSystem(
     // If we are using the legacy FB support flag, we
     // defer the event to the null with a one
     // time event listener so we can defer the event.
+    // 兼容旧版 FB support flag，使用一个事件监听器
     if (
       enableLegacyFBSupport &&
       // If our event flags match the required flags for entering
@@ -575,10 +621,13 @@ export function dispatchEventForPluginEventSystem(
       // then we can defer the event to the "document", to allow
       // for legacy FB support, where the expected behavior was to
       // match React < 16 behavior of delegated clicks to the doc.
+        // 兼容  React < 16 的版本
+        // click 事件注册到 document 上
       domEventName === 'click' &&
       (eventSystemFlags & SHOULD_NOT_DEFER_CLICK_FOR_FB_SUPPORT_MODE) === 0 &&
       !isReplayingEvent(nativeEvent)
     ) {
+      // 在 document 上注册事件监听器
       deferClickToDocumentForLegacyFBSupport(domEventName, targetContainer);
       return;
     }
@@ -595,7 +644,7 @@ export function dispatchEventForPluginEventSystem(
       // If we find that "rootContainer", we find the parent fiber
       // sub-tree for that root and make that our ancestor instance.
       let node = targetInst;
-
+      // 从当前触发事件的DOM节点开始，遍历fiber树，找到根DOM容器
       mainLoop: while (true) {
         if (node === null) {
           return;
@@ -650,7 +699,7 @@ export function dispatchEventForPluginEventSystem(
       }
     }
   }
-
+  // 批量处理
   batchedUpdates(() =>
     dispatchEventsForPlugins(
       domEventName,
