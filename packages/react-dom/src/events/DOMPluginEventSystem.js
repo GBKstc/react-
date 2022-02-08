@@ -313,6 +313,9 @@ function dispatchEventsForPlugins(
   // 2、批量处理队列
   const dispatchQueue: DispatchQueue = [];
   // 3、收集 所有的listener
+  /* 
+     dispatchQueue.push({event, listeners});
+  */
   extractEvents(
     dispatchQueue,
     domEventName,
