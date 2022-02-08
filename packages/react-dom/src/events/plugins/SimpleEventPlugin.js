@@ -108,7 +108,7 @@ function extractEvents(
     case 'mouseout':
     case 'mouseover':
     case 'contextmenu':
-      SyntheticEventCtor = SyntheticMouseEvent;
+      SyntheticEventCtor = SyntheticMouseEvent;   // 鼠标合成事件
       break;
     case 'drag':
     case 'dragend':
@@ -118,32 +118,32 @@ function extractEvents(
     case 'dragover':
     case 'dragstart':
     case 'drop':
-      SyntheticEventCtor = SyntheticDragEvent;
+      SyntheticEventCtor = SyntheticDragEvent;   // 拖拽合成事件
       break;
     case 'touchcancel':
     case 'touchend':
     case 'touchmove':
     case 'touchstart':
-      SyntheticEventCtor = SyntheticTouchEvent;
+      SyntheticEventCtor = SyntheticTouchEvent;   // 移动端触摸合成事件
       break;
     case ANIMATION_END:
     case ANIMATION_ITERATION:
     case ANIMATION_START:
-      SyntheticEventCtor = SyntheticAnimationEvent;
+      SyntheticEventCtor = SyntheticAnimationEvent;  // 动画合成事件
       break;
     case TRANSITION_END:
       SyntheticEventCtor = SyntheticTransitionEvent;
       break;
     case 'scroll':
-      SyntheticEventCtor = SyntheticUIEvent;
+      SyntheticEventCtor = SyntheticUIEvent;      // 滚动合成事件
       break;
     case 'wheel':
-      SyntheticEventCtor = SyntheticWheelEvent;
+      SyntheticEventCtor = SyntheticWheelEvent;    // 滚动合成事件
       break;
     case 'copy':
     case 'cut':
     case 'paste':
-      SyntheticEventCtor = SyntheticClipboardEvent;
+      SyntheticEventCtor = SyntheticClipboardEvent;  // 复制/粘贴/剪切 合成事件
       break;
     case 'gotpointercapture':
     case 'lostpointercapture':
