@@ -502,6 +502,14 @@ export function claimNextRetryLane(): Lane {
 
 export function getHighestPriorityLane(lanes: Lanes): Lane {
   return lanes & -lanes;
+  //
+  //例子const TransitionLanes: Lanes = /*                       */ 0b0000000001111111111111111000000;
+  //例子                      -Lanes = /*                       */ 0b1111111110000000000000001111111;
+  //例子              lanes & -lanes = /*                       */ 0b0000000000000000000000001000000;
+  //~lans 反码
+  //-lans 补码 补码等于反码+1
+  //函数作用是取赛道的最高优先级
+
 }
 
 export function pickArbitraryLane(lanes: Lanes): Lane {
