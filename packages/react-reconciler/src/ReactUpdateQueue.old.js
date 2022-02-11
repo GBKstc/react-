@@ -213,6 +213,20 @@ export function enqueueUpdate<State>(
   update: Update<State>,
   lane: Lane,
 ) {
+  /*export function initializeUpdateQueue<State>(fiber: Fiber): void {
+    const queue: UpdateQueue<State> = {
+      baseState: fiber.memoizedState,
+      firstBaseUpdate: null,
+      lastBaseUpdate: null,
+      shared: {
+        pending: null,
+        interleaved: null,
+        lanes: NoLanes,
+      },
+      effects: null,
+    };
+    fiber.updateQueue = queue;
+  }*/
   const updateQueue = fiber.updateQueue;
   if (updateQueue === null) {
     // Only occurs if the fiber has been unmounted.

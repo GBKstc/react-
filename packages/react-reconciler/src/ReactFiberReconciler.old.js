@@ -313,7 +313,21 @@ export function updateContainer(
     }
     update.callback = callback;
   }
-
+  /*
+  * updateQueue = fiber.updateQueue  给fiber.updateQueue.shared添加update
+  * const queue: UpdateQueue<State> = {
+     baseState: fiber.memoizedState,
+     firstBaseUpdate: null,
+     lastBaseUpdate: null,
+     shared: {
+       pending: null,
+       interleaved: null,
+       lanes: NoLanes,
+     },
+     effects: null,
+   };
+   fiber.updateQueue = queue;
+  * */
   enqueueUpdate(current, update, lane);
   const root = scheduleUpdateOnFiber(current, lane, eventTime);
   if (root !== null) {
