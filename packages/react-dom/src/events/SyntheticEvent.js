@@ -39,6 +39,9 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
    * normalizing browser quirks. Subclasses do not necessarily have to implement a
    * DOM interface; custom application-specific events can also subclass this.
    */
+  /* 
+     合成事件构造函数
+  */
   function SyntheticBaseEvent(
     reactName: string | null,
     reactEventType: string,
@@ -79,13 +82,14 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
   }
 
   Object.assign(SyntheticBaseEvent.prototype, {
+    // 在合成事件构造函数的原型上添加 原生事件的 preventDefault 方法，用于阻止事件的默认行为
     preventDefault: function() {
       this.defaultPrevented = true;
       const event = this.nativeEvent;
       if (!event) {
         return;
       }
-
+    // 阻止事件默认行为的浏览器兼容
       if (event.preventDefault) {
         event.preventDefault();
         // $FlowFixMe - flow is not aware of `unknown` in IE
@@ -94,13 +98,13 @@ function createSyntheticEvent(Interface: EventInterfaceType) {
       }
       this.isDefaultPrevented = functionThatReturnsTrue;
     },
-
+    // 在合成事件构造函数的原型上添加 原生事件的 stopPropagation 方法，用于阻止事件冒泡到父元素
     stopPropagation: function() {
       const event = this.nativeEvent;
       if (!event) {
         return;
       }
-
+      // 阻止事件冒泡的浏览器兼容
       if (event.stopPropagation) {
         event.stopPropagation();
         // $FlowFixMe - flow is not aware of `unknown` in IE

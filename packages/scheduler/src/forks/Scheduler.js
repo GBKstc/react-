@@ -3,6 +3,8 @@
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
+ * 
+ * timerQueue：保存未过期任务   taskQueue：保存已过期任务
  *
  * unstable_scheduleCallback方法添加回调任务
  *
@@ -158,9 +160,10 @@ function handleTimeout(currentTime) {
   }
 }
 /*
-* performWorkUntilDeadline这个函数的作用是把scheduledHostCallback执行 传入两个参数
+* performWorkUntilDeadline这个函数的作用是把scheduledHostCallback执行 flushWork就是在执行的函数 传入两个参数
 * hasTimeRemaining = true;
 * initialTime = currentTime = getCurrentTime();
+* 该方法主要是对workLoop进行调用
 * */
 
 function flushWork(hasTimeRemaining, initialTime) {
@@ -207,7 +210,9 @@ function flushWork(hasTimeRemaining, initialTime) {
     }
   }
 }
-
+/* 
+  通过该方法执行task任务，其返回值为是否还有待执行的task
+*/
 function workLoop(hasTimeRemaining, initialTime) {
   let currentTime = initialTime;
   advanceTimers(currentTime);
@@ -544,7 +549,11 @@ function forceFrameRate(fps) {
     frameInterval = frameYieldMs;
   }
 }
-
+/* 
+   如果scheduledHostCallback（requestHostCallback方法中，会将它赋值为flushWork）存在时，则调用该方法。
+  a. 如果在浏览器的空余时间片结束之后， 还有任务需要执行则通过postMessage推入到异步中等待下一次空余时间执行
+  b. 如果在执行中捕获到错误，依旧通过postMessage推入到异步中等待下一次空余时间执行。
+*/
 const performWorkUntilDeadline = () => {
   if (scheduledHostCallback !== null) {
     const currentTime = getCurrentTime();

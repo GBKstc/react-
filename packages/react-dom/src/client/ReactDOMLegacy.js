@@ -102,6 +102,13 @@ function getReactRootElementInContainer(container: any) {
   }
 }
 
+//*
+// 在 legacyCreateRootFromDOMContainer 中，主要做了三件事：
+// 调用 createContainer 函数创建 ReactDOMRoot对象。
+// 将根DOM容器 container(div#root) 标记为 hostRoot，即标记为根节点。
+// 在根DOM容器 container(div#root) 上监听事件。
+// 以上方法都是在 react-dom 包中实现，在 legacyCreateRootFromDOMContainer 中调用了 react-reconciler 包中的 createContainer 方法来创建 ReactDOMRoot对象，可见，react 通过 createContainer 函数将 react-dom包和 react-reconciler包联系了起来。
+// */
 //从DOMContainer创建根目录
 function legacyCreateRootFromDOMContainer(
   container: Container,
@@ -119,9 +126,10 @@ function legacyCreateRootFromDOMContainer(
   //root.current = uninitializedFiber;
   //uninitializedFiber.stateNode = root;
   //root是FiberRoot root.current是目前页面上渲染的FiberTree
+  // 1、创建 ReactDOMRoot 对象
   const root = createContainer(
-    container,
-    LegacyRoot,
+    container,   // div#root，在调用 ReactDOM.render 时通过 document.getElementById("root") 获取的根节点
+    LegacyRoot,  // 全局变量，标记启动模式为 LegacyRoot模式
     forceHydrate,
     null, // hydrationCallbacks
     false, // isStrictMode
@@ -166,37 +174,48 @@ function legacyRenderSubtreeIntoContainer(
 
   let root = container._reactRootContainer;
   let fiberRoot: FiberRoot;
-  //首次渲染
   if (!root) {
+    // 首次调用，root 还未初始化，会进入这里初始化 root
+
     // Initial mount
+    // 创建 ReactDOMRoot 对象，初始化 React 应用环境
+    // 创建的 ReactDOMRoot 对象会存储在 container 的 _reactRootContainer 属性上
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
-      container,
+      container,   // 参数 container 即为 document.getElementById('root')
       forceHydrate,
     );
     fiberRoot = root;
     if (typeof callback === 'function') {
       const originalCallback = callback;
       callback = function () {
+        // instance最终指向 children(入参: 如<App/>)生成的dom节点
         const instance = getPublicRootInstance(fiberRoot);
         originalCallback.call(instance);
       };
     }
     // Initial mount should not be batched.
+    // 更新容器 使用flushSync 为了提高更新的优先级
     flushSync(() => {
       updateContainer(children, fiberRoot, parentComponent, callback);
     });
   } else {
+
+    // root 已经初始化，二次调用 ReactDom.render 时执行legacyRenderSubtreeIntoContainer，
+    // 获取存储在 container 上的 ReactDOMRoot 对象
     fiberRoot = root;
     if (typeof callback === 'function') {
       const originalCallback = callback;
       callback = function () {
+        // instance最终指向 children(入参: 如<App/>)生成的dom节点
         const instance = getPublicRootInstance(fiberRoot);
         originalCallback.call(instance);
       };
     }
     // Update
+    // 更新容器
     updateContainer(children, fiberRoot, parentComponent, callback);
   }
+  // instance最终指向 children(入参: 如<App/>)生成的dom节点
   return getPublicRootInstance(fiberRoot);
 }
 
@@ -278,7 +297,7 @@ export function hydrate(
 *   document.getElementById('root'),
 *   ()=>{}
 * )
-*
+* https://juejin.cn/post/7020899265471840287
 * */
 export function render(
   element: React$Element<any>,  //<div></div>

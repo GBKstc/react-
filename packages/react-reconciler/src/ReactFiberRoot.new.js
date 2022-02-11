@@ -105,6 +105,9 @@ export function createFiberRoot(
   concurrentUpdatesByDefaultOverride: null | boolean,
   identifierPrefix: string,
 ): FiberRoot {
+  // 1、创建根DOM容器的 FiberRoot 节点
+  // FiberRootNode 类中的 tag 参数是 RootTag，
+  // 用来标记 React 应用的启动模式（LegacyRoot 和 ConcurrentRoot 两种模式）
   const root: FiberRoot = (new FiberRootNode(
     containerInfo,
     tag,
@@ -117,14 +120,17 @@ export function createFiberRoot(
 
   // Cyclic construction. This cheats the type system right now because
   // stateNode is any.
+  // 2、这里创建了`react`应用的首个`fiber`对象, 称为`HostRootFiber`
   const uninitializedFiber = createHostRootFiber(
     tag,
     isStrictMode,
     concurrentUpdatesByDefaultOverride,
   );
+  // 3、将根DOM容器的fiber节点与 HostRootFiber 关联起来
   root.current = uninitializedFiber;
   uninitializedFiber.stateNode = root;
 
+  // 4、初始化HostRootFiber的 memoizedState
   if (enableCache) {
     const initialCache = createCache();
     retainCache(initialCache);
@@ -149,7 +155,7 @@ export function createFiberRoot(
     };
     uninitializedFiber.memoizedState = initialState;
   }
-
+  // 初始化HostRootFiber的updateQueue
   initializeUpdateQueue(uninitializedFiber);
 
   return root;

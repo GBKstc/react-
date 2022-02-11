@@ -240,7 +240,7 @@ function dispatchEventOriginal(
     );
     return;
   }
-  // 尝试调度事件，如果被阻止，则返回 SuspenseInstance 或 Container
+  // 判断是否阻塞，如果阻塞返回 SuspenseInstance 或 Container
   const blockedOn = findInstanceBlockingEvent(
     domEventName,
     eventSystemFlags,
@@ -398,7 +398,7 @@ export let return_targetInst = null;
 // The return_targetInst field above is conceptually part of the return value.
 // 尝试调度事件，如果被阻止，则返回 SuspenseInstance 或 Container
 /*
-* 函数的作用是尝试调度事件，如果调度事件失败，则返回 SuspenseInstance 或 根DOM容器。在 attemptToDispatchEvent 中，主要做了3件事：
+* 函数的作用是尝试调度事件，如果调度事件失败，则返回 SuspenseInstance 或 根DOM容器。在 findInstanceBlockingEvent 中，主要做了3件事：
  1、定位触发事件的原生DOM节点
  const nativeEventTarget = getEventTarget(nativeEvent);
 

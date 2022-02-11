@@ -264,6 +264,20 @@ export function updateContainer(
     onScheduleRoot(container, element);
   }
   const current = container.current;
+  /*
+  * let getCurrentTime;
+    const hasPerformanceNow =
+      typeof performance === 'object' && typeof performance.now === 'function';
+
+    if (hasPerformanceNow) {
+      const localPerformance = performance;
+      getCurrentTime = () => localPerformance.now();
+    } else {
+      const localDate = Date;
+      const initialTime = localDate.now();
+      getCurrentTime = () => localDate.now() - initialTime;
+    }
+  * */
   const eventTime = requestEventTime();
   const lane = requestUpdateLane(current);
 
