@@ -251,6 +251,8 @@ function processDispatchQueueItemsInOrder(
 ): void {
   let previousInstance;
   if (inCapturePhase) {
+     // 1、捕获阶段 事件处理
+    // 注意这里是倒叙遍历 listener
     for (let i = dispatchListeners.length - 1; i >= 0; i--) {
       const {instance, currentTarget, listener} = dispatchListeners[i];
       if (instance !== previousInstance && event.isPropagationStopped()) {
@@ -260,6 +262,8 @@ function processDispatchQueueItemsInOrder(
       previousInstance = instance;
     }
   } else {
+    // 2、冒泡阶段 事件处理
+    // 注意这里是正序遍历 listener
     for (let i = 0; i < dispatchListeners.length; i++) {
       const {instance, currentTarget, listener} = dispatchListeners[i];
       if (instance !== previousInstance && event.isPropagationStopped()) {
@@ -278,6 +282,7 @@ export function processDispatchQueue(
   const inCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) !== 0;
   for (let i = 0; i < dispatchQueue.length; i++) {
     const {event, listeners} = dispatchQueue[i];
+    // 对合成事件进行派发
     processDispatchQueueItemsInOrder(event, listeners, inCapturePhase);
     //  event system doesn't use pooling.
   }
@@ -308,6 +313,9 @@ function dispatchEventsForPlugins(
   // 2、批量处理队列
   const dispatchQueue: DispatchQueue = [];
   // 3、收集 所有的listener
+  /* 
+     dispatchQueue.push({event, listeners});
+  */
   extractEvents(
     dispatchQueue,
     domEventName,
@@ -424,7 +432,7 @@ export function listenToAllSupportedEvents(rootContainerElement: EventTarget) {
     allNativeEvents.forEach(domEventName => {
       // We handle selectionchange separately because it
       // doesn't bubble and needs to be on the document.
-      //我们单独处理selectionchange，因为它不冒泡，需要放在文档上。
+      //我们单独处理selectionchange，因为它不冒泡，需要放在document上。
       if (domEventName !== 'selectionchange') {
         if (!nonDelegatedEvents.has(domEventName)) {
           listenToNativeEvent(domEventName, false, rootContainerElement);
@@ -1008,7 +1016,9 @@ export function accumulateEnterLeaveTwoPhaseListeners(
     );
   }
 }
-
+/*
+ 收集所有监听该事件的 listener
+*/
 export function accumulateEventHandleNonManagedNodeListeners(
   reactEventType: DOMEventName,
   currentTarget: EventTarget,
