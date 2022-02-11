@@ -194,7 +194,7 @@ function legacyRenderSubtreeIntoContainer(
       };
     }
     // Initial mount should not be batched.
-    // 更新容器
+    // 更新容器 使用flushSync 为了提高更新的优先级
     flushSync(() => {
       updateContainer(children, fiberRoot, parentComponent, callback);
     });
