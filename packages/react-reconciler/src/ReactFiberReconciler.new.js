@@ -32,7 +32,8 @@ import {
   HostRoot,
   SuspenseComponent,
 } from './ReactWorkTags';
-import getComponentNameFromFiber from 'react-reconciler/src/getComponentNameFromFiber';
+import getComponentNameFromFiber
+  from 'react-reconciler/src/getComponentNameFromFiber';
 import isArray from 'shared/isArray';
 import {enableSchedulingProfiler} from 'shared/ReactFeatureFlags';
 import ReactSharedInternals from 'shared/ReactSharedInternals';
@@ -89,6 +90,7 @@ import {
 } from './ReactFiberHotReloading.new';
 import {markRenderScheduled} from './SchedulingProfiler';
 import ReactVersion from 'shared/ReactVersion';
+
 export {registerMutableSourceForHydration} from './ReactMutableSource.new';
 export {createPortal} from './ReactPortal';
 export {
@@ -198,10 +200,10 @@ function findHostInstanceWithWarning(
           if (fiber.mode & StrictLegacyMode) {
             console.error(
               '%s is deprecated in StrictMode. ' +
-                '%s was passed an instance of %s which is inside StrictMode. ' +
-                'Instead, add a ref directly to the element you want to reference. ' +
-                'Learn more about using refs safely here: ' +
-                'https://reactjs.org/link/strict-mode-find-node',
+              '%s was passed an instance of %s which is inside StrictMode. ' +
+              'Instead, add a ref directly to the element you want to reference. ' +
+              'Learn more about using refs safely here: ' +
+              'https://reactjs.org/link/strict-mode-find-node',
               methodName,
               methodName,
               componentName,
@@ -209,10 +211,10 @@ function findHostInstanceWithWarning(
           } else {
             console.error(
               '%s is deprecated in StrictMode. ' +
-                '%s was passed an instance of %s which renders StrictMode children. ' +
-                'Instead, add a ref directly to the element you want to reference. ' +
-                'Learn more about using refs safely here: ' +
-                'https://reactjs.org/link/strict-mode-find-node',
+              '%s was passed an instance of %s which renders StrictMode children. ' +
+              'Instead, add a ref directly to the element you want to reference. ' +
+              'Learn more about using refs safely here: ' +
+              'https://reactjs.org/link/strict-mode-find-node',
               methodName,
               methodName,
               componentName,
@@ -236,7 +238,7 @@ function findHostInstanceWithWarning(
 
 export function createContainer(
   containerInfo: Container,
-  tag: RootTag,
+  tag: RootTag, // LegacyRoot全局变量，标记启动模式为 LegacyRoot模式
   hydrate: boolean,
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
   isStrictMode: boolean,
@@ -287,9 +289,9 @@ export function updateContainer(
       didWarnAboutNestedUpdates = true;
       console.error(
         'Render methods should be a pure function of props and state; ' +
-          'triggering nested component updates from render is not allowed. ' +
-          'If necessary, trigger nested updates in componentDidUpdate.\n\n' +
-          'Check the render method of %s.',
+        'triggering nested component updates from render is not allowed. ' +
+        'If necessary, trigger nested updates in componentDidUpdate.\n\n' +
+        'Check the render method of %s.',
         getComponentNameFromFiber(ReactCurrentFiberCurrent) || 'Unknown',
       );
     }
@@ -306,7 +308,7 @@ export function updateContainer(
       if (typeof callback !== 'function') {
         console.error(
           'render(...): Expected the last optional `callback` argument to be a ' +
-            'function. Instead received: %s.',
+          'function. Instead received: %s.',
           callback,
         );
       }

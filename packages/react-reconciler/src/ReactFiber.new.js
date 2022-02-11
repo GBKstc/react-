@@ -57,7 +57,8 @@ import {
   LegacyHiddenComponent,
   CacheComponent,
 } from './ReactWorkTags';
-import getComponentNameFromFiber from 'react-reconciler/src/getComponentNameFromFiber';
+import getComponentNameFromFiber
+  from 'react-reconciler/src/getComponentNameFromFiber';
 
 import {isDevToolsPresent} from './ReactFiberDevToolsHook.new';
 import {
@@ -203,7 +204,7 @@ function FiberNode(
 //    is faster.
 // 5) It should be easy to port this to a C struct and keep a C implementation
 //    compatible.
-const createFiber = function(
+const createFiber = function (
   tag: WorkTag,
   pendingProps: mixed,
   key: null | string,
@@ -311,9 +312,9 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
     currentDependencies === null
       ? null
       : {
-          lanes: currentDependencies.lanes,
-          firstContext: currentDependencies.firstContext,
-        };
+        lanes: currentDependencies.lanes,
+        firstContext: currentDependencies.firstContext,
+      };
 
   // These will be overridden during the parent's reconciliation
   workInProgress.sibling = current.sibling;
@@ -406,9 +407,9 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
       currentDependencies === null
         ? null
         : {
-            lanes: currentDependencies.lanes,
-            firstContext: currentDependencies.firstContext,
-          };
+          lanes: currentDependencies.lanes,
+          firstContext: currentDependencies.firstContext,
+        };
 
     if (enableProfilerTimer) {
       // Note: We don't reset the actualTime counts. It's useful to accumulate
@@ -426,7 +427,9 @@ export function createHostRootFiber(
   isStrictMode: boolean,
   concurrentUpdatesByDefaultOverride: null | boolean,
 ): Fiber {
+  // fiber节点mode属性, 会与2种RootTag(ConcurrentRoot, LegacyRoot)关联起来
   let mode;
+  // ConcurrentRoot 的启动模式
   if (tag === ConcurrentRoot) {
     mode = ConcurrentMode;
     if (isStrictMode === true) {
@@ -440,7 +443,7 @@ export function createHostRootFiber(
     }
     if (
       // We only use this flag for our repo tests to check both behaviors.
-      // TODO: Flip this flag and rename it something like "forceConcurrentByDefaultForTesting"
+    // TODO: Flip this flag and rename it something like "forceConcurrentByDefaultForTesting"
       !enableSyncDefaultUpdates ||
       // Only for internal experiments.
       (allowConcurrentByDefault && concurrentUpdatesByDefaultOverride)
@@ -457,7 +460,9 @@ export function createHostRootFiber(
     // Without some nodes in the tree having empty base times.
     mode |= ProfileMode;
   }
-
+  // 创建 fiber 节点，
+  // 传入 HostRoot 全局变量，标记为根节点
+  // 传入 mode，标记启动类型
   return createFiber(HostRoot, null, null, mode);
 }
 
@@ -567,8 +572,8 @@ export function createFiberFromTypeAndProps(
 
         throw new Error(
           'Element type is invalid: expected a string (for built-in ' +
-            'components) or a class/function (for composite components) ' +
-            `but got: ${type == null ? type : typeof type}.${info}`,
+          'components) or a class/function (for composite components) ' +
+          `but got: ${type == null ? type : typeof type}.${info}`,
         );
       }
     }

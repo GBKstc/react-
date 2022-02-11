@@ -165,7 +165,7 @@ export function createRoot(
       identifierPrefix = options.identifierPrefix;
     }
   }
-
+// 1、创建fiberRoot对象，该fiberRoot对象将会被挂载到 ReactDOMRoot 对象的_internalRoot属性上
   const root = createContainer(
     container,
     ConcurrentRoot,
@@ -175,12 +175,13 @@ export function createRoot(
     concurrentUpdatesByDefaultOverride,
     identifierPrefix,
   );
+  // 2、给 container(div#root) 标记为 hostRoot，即标记为根节点
   markContainerAsRoot(root.current, container);
-
+  // 3、在根DOM容器(div#root)上监听事件
   const rootContainerElement =
     container.nodeType === COMMENT_NODE ? container.parentNode : container;
   listenToAllSupportedEvents(rootContainerElement);
-
+  // 4、返回 ReactDoRoot 实例
   return new ReactDOMRoot(root);
 }
 
