@@ -569,6 +569,7 @@ function markUpdateLaneFromFiberToRoot(
   lane: Lane,
 ): FiberRoot | null {
   // Update the source fiber's lanes
+  //合并车道和车道组
   sourceFiber.lanes = mergeLanes(sourceFiber.lanes, lane);
   let alternate = sourceFiber.alternate;
   if (alternate !== null) {
@@ -600,7 +601,10 @@ function markUpdateLaneFromFiberToRoot(
     node = parent;
     parent = parent.return;
   }
+  //fiber树根组件
   if (node.tag === HostRoot) {
+    //FiberRoot = RootFiber.stateNode
+    //RootFiber = FiberRoot.current
     const root: FiberRoot = node.stateNode;
     return root;
   } else {

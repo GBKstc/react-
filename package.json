@@ -150,5 +150,8 @@
   },
   "resolutions": {
     "react-is": "npm:react-is"
+  },
+  "dependencies": {
+    "yarn": "^1.22.17"
   }
 }
