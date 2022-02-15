@@ -263,6 +263,7 @@ export function updateContainer(
   if (__DEV__) {
     onScheduleRoot(container, element);
   }
+  //当前的fiberTree
   const current = container.current;
   /*
   * let getCurrentTime;

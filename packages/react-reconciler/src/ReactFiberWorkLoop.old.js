@@ -457,7 +457,7 @@ export function scheduleUpdateOnFiber(
   eventTime: number,
 ): FiberRoot | null {
   checkForNestedUpdates();//检验Update是不是超出了数量 大于50
-
+  //获取fiber树根组件
   const root = markUpdateLaneFromFiberToRoot(fiber, lane);
   if (root === null) {
     return null;
