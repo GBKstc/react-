@@ -280,6 +280,7 @@ export function updateContainer(
     }
   * */
   const eventTime = requestEventTime();
+  //获取update的lane  当前的运行结果为const lane = (SyncLane: Lane);
   const lane = requestUpdateLane(current);
 
   if (enableSchedulingProfiler) {

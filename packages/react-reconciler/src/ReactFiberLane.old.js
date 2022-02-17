@@ -385,7 +385,8 @@ function computeExpirationTime(lane: Lane, currentTime: number) {
 }
 
 /*
-* 目的是把当前进来的这个任务的过期时间记录到root.expirationTimes，并检查这个任务是否已经过期，若过期则将它的lane放到root.expiredLanes中。
+* 目的是把当前进来的这个任务的过期时间记录到root.expirationTimes，
+* 并检查这个任务是否已经过期，若过期则将它的lane放到root.expiredLanes中。
 * */
 export function markStarvedLanesAsExpired(
   root: FiberRoot,
@@ -440,6 +441,7 @@ export function markStarvedLanesAsExpired(
         (lane & pingedLanes) !== NoLanes
       ) {
         // Assumes timestamps are monotonically increasing.
+        //computeExpirationTime(lane, currentTime) 根据赛道和当前时间计算过期时间
         expirationTimes[index] = computeExpirationTime(lane, currentTime);
       }
     } else if (expirationTime <= currentTime) {

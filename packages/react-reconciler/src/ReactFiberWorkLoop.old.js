@@ -457,15 +457,21 @@ export function scheduleUpdateOnFiber(
   eventTime: number,
 ): FiberRoot | null {
   checkForNestedUpdates();//检验Update是不是超出了数量 大于50
-  //获取fiber树根组件
+  //获取fiber树根组件 便利父级 将lan合并到父级的lans中 然后返回FiberRoot
   const root = markUpdateLaneFromFiberToRoot(fiber, lane);
   if (root === null) {
     return null;
   }
 
   // Mark that the root has a pending update.
+  //标记root为一个待更新的update
   markRootUpdated(root, lane, eventTime);
 
+  // executionContext = 0b0000
+  // RenderContext    = 0b0010
+  // NoLanes          = 0b0000
+
+  //workInProgressRoot 目前还没有
   if (
     (executionContext & RenderContext) !== NoLanes &&
     root === workInProgressRoot
@@ -539,7 +545,12 @@ export function scheduleUpdateOnFiber(
         markRootSuspended(root, workInProgressRootRenderLanes);
       }
     }
-
+    /*
+    * ensureRootIsScheduled函数作为统一协调任务调度的角色，
+    * 它会调用markStarvedLanesAsExpired函数，
+    * 目的是把当前进来的这个任务的过期时间记录到root.expirationTimes，
+    * 并检查这个任务是否已经过期，若过期则将它的lane放到root.expiredLanes中
+    * */
     ensureRootIsScheduled(root, eventTime);
     if (
       lane === SyncLane &&
@@ -586,6 +597,7 @@ function markUpdateLaneFromFiberToRoot(
   // Walk the parent path to the root and update the child lanes.
   let node = sourceFiber;
   let parent = sourceFiber.return;
+  //遍历sourceFiber的parent 把parent.childLanes = mergeLanes(parent.childLanes, lane);
   while (parent !== null) {
     parent.childLanes = mergeLanes(parent.childLanes, lane);
     alternate = parent.alternate;
@@ -634,10 +646,13 @@ export function isInterleavedUpdate(fiber: Fiber, lane: Lane) {
 // root has work on. This function is called on every update, and right before
 // exiting a task.
 function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
+  // 获取旧任务
   const existingCallbackNode = root.callbackNode;
 
   // Check if any lanes are being starved by other work. If so, mark them as
   // expired so we know to work on those next.
+  // 记录任务的过期时间，检查是否有过期任务，有则立即将它放到root.expiredLanes，
+  // 便于接下来将这个任务以同步模式立即调度
   markStarvedLanesAsExpired(root, currentTime);
 
   // Determine the next lanes to work on, and their priority.
@@ -657,6 +672,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   }
 
   // We use the highest priority lane to represent the priority of the callback.
+  // 若有任务过期，这里获取到的会是同步优先级
   const newCallbackPriority = getHighestPriorityLane(nextLanes);
 
   // Check if there's an existing task. We may be able to reuse it.
@@ -695,10 +711,12 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   }
 
   // Schedule a new callback.
+  // 调度一个新任务
   let newCallbackNode;
   if (newCallbackPriority === SyncLane) {
     // Special case: Sync React callbacks are scheduled on a special
     // internal queue
+    // 过期任务以同步优先级被调度
     if (root.tag === LegacyRoot) {
       if (__DEV__ && ReactCurrentActQueue.isBatchingLegacy !== null) {
         ReactCurrentActQueue.didScheduleLegacyUpdate = true;
