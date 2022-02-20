@@ -137,6 +137,7 @@ function legacyCreateRootFromDOMContainer(
     '', // identiferPrefix
   );
   //设置当前页面的container为root.current
+  // container['__reactContainer$' + randomKey] = root.current = uninitializedFiber;
   markContainerAsRoot(root.current, container);
 
   const rootContainerElement =
@@ -159,7 +160,12 @@ function warnOnInvalidCallback(callback: mixed, callerName: string): void {
     }
   }
 }
-
+/*
+* container._reactRootContainer = FiberRoot
+* container['__reactContainer$' + randomKey] = FiberRoot.current = uninitializedFiber
+*
+*
+* */
 function legacyRenderSubtreeIntoContainer(
   parentComponent: ?React$Component<any, any>,
   children: ReactNodeList,

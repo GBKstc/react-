@@ -3,7 +3,7 @@
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
- * 
+ *
  * timerQueue：保存未过期任务   taskQueue：保存已过期任务
  *
  * unstable_scheduleCallback方法添加回调任务
@@ -172,7 +172,7 @@ function flushWork(hasTimeRemaining, initialTime) {
   }
 
   // We'll need a host callback the next time work is scheduled.
-  //我们需要回调执行 已经排班的工作
+  //如果有在等待的timeOut任务取消
   isHostCallbackScheduled = false;
   if (isHostTimeoutScheduled) {
     // We scheduled a timeout but it's no longer needed. Cancel it.
@@ -210,12 +210,14 @@ function flushWork(hasTimeRemaining, initialTime) {
     }
   }
 }
-/* 
+/*
   通过该方法执行task任务，其返回值为是否还有待执行的task
 */
 function workLoop(hasTimeRemaining, initialTime) {
   let currentTime = initialTime;
+  //根据当前的时间点，遍历timerQueue，把过期的任务放置到taskQueue列表
   advanceTimers(currentTime);
+  //下面开始遍历taskQueue列表，
   currentTask = peek(taskQueue);
   while (
     currentTask !== null &&
@@ -226,7 +228,7 @@ function workLoop(hasTimeRemaining, initialTime) {
       (!hasTimeRemaining || shouldYieldToHost())
     ) {
       // This currentTask hasn't expired, and we've reached the deadline.
-      //当前任务尚未过期，把已经过期的同步任务都调用完了，退出while循环
+      //当前任务尚未过期 || 已经到了最后期限
       break;
     }
     const callback = currentTask.callback;
@@ -237,6 +239,7 @@ function workLoop(hasTimeRemaining, initialTime) {
       if (enableProfiling) {
         markTaskRun(currentTask, currentTime);
       }
+      //将回调函数进行执行
       const continuationCallback = callback(didUserCallbackTimeout);
       currentTime = getCurrentTime();
       if (typeof continuationCallback === 'function') {
@@ -474,12 +477,16 @@ const maxInterval = maxYieldMs;
 let startTime = -1;
 
 let needsPaint = false;
-
+/*
+* 判断时间片的时间 还够不够
+* */
 function shouldYieldToHost() {
+  //比较现在的时间和之前任务开始的时候记录的时间
   const timeElapsed = getCurrentTime() - startTime;
   if (timeElapsed < frameInterval) {
     // The main thread has only been blocked for a really short amount of time;
     // smaller than a single frame. Don't yield yet.
+    //主线程被阻塞的时间比单个帧要短。Don't yield
     return false;
   }
 
@@ -549,7 +556,7 @@ function forceFrameRate(fps) {
     frameInterval = frameYieldMs;
   }
 }
-/* 
+/*
    如果scheduledHostCallback（requestHostCallback方法中，会将它赋值为flushWork）存在时，则调用该方法。
   a. 如果在浏览器的空余时间片结束之后， 还有任务需要执行则通过postMessage推入到异步中等待下一次空余时间执行
   b. 如果在执行中捕获到错误，依旧通过postMessage推入到异步中等待下一次空余时间执行。
@@ -579,8 +586,10 @@ const performWorkUntilDeadline = () => {
       if (hasMoreWork) {
         // If there's more work, schedule the next message event at the end
         // of the preceding one.
+        //如果还有更多工作，请将下一个消息事件安排在前一个消息事件的末尾
         schedulePerformWorkUntilDeadline();
       } else {
+        //关闭MessageLoop
         isMessageLoopRunning = false;
         scheduledHostCallback = null;
       }
@@ -629,7 +638,9 @@ if (typeof localSetImmediate === 'function') {
     localSetTimeout(performWorkUntilDeadline, 0);
   };
 }
-
+/*
+  异步调用scheduledHostCallback
+*/
 function requestHostCallback(callback) {
   scheduledHostCallback = callback;
   //如果是true说明有在执行的任务

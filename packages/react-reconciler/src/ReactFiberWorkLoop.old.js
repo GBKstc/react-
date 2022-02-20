@@ -373,7 +373,7 @@ export function getCurrentTime() {
 
 export function requestUpdateLane(fiber: Fiber): Lane {
   // Special cases
-  const mode = fiber.mode;
+  const mode = fiber.mode;//LegacyRoot 0
   if ((mode & ConcurrentMode) === NoMode) {
     return (SyncLane: Lane);
   } else if (
@@ -465,6 +465,9 @@ export function scheduleUpdateOnFiber(
 
   // Mark that the root has a pending update.
   //标记root为一个待更新的update
+  //做了下面两件事
+  //root.pendingLanes |= lane;
+  //root.eventTimes[index] = eventTime;
   markRootUpdated(root, lane, eventTime);
 
   // executionContext = 0b0000
@@ -550,6 +553,8 @@ export function scheduleUpdateOnFiber(
     * 它会调用markStarvedLanesAsExpired函数，
     * 目的是把当前进来的这个任务的过期时间记录到root.expirationTimes，
     * 并检查这个任务是否已经过期，若过期则将它的lane放到root.expiredLanes中
+    * 
+    * syncQueue里面推任务performSyncWorkOnRoot
     * */
     ensureRootIsScheduled(root, eventTime);
     if (
@@ -564,7 +569,13 @@ export function scheduleUpdateOnFiber(
       // scheduleCallbackForFiber to preserve the ability to schedule a callback
       // without immediately flushing it. We only do this for user-initiated
       // updates, to preserve historical behavior of legacy mode.
+      //重置时间workInProgressRootRenderTargetTime = now() + RENDER_TIMEOUT_MS;
       resetRenderTimer();
+      /* 
+      if (includesLegacySyncCallbacks) {
+        flushSyncCallbacks();
+      }
+      */
       flushSyncCallbacksOnlyInLegacyMode();
     }
   }
@@ -653,9 +664,16 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   // expired so we know to work on those next.
   // 记录任务的过期时间，检查是否有过期任务，有则立即将它放到root.expiredLanes，
   // 便于接下来将这个任务以同步模式立即调度
+  /*
+  * 遍历pendingLanes 判断expirationTimes上的值
+  *     如果是空的 expirationTimes[index] = computeExpirationTime(lane, currentTime)
+  *     如果不是空的且expirationTime <= currentTime root.expiredLanes |= lane
+  * 同时清空pendingLanes
+  * */
   markStarvedLanesAsExpired(root, currentTime);
 
   // Determine the next lanes to work on, and their priority.
+  //nextLanes应该是为空
   const nextLanes = getNextLanes(
     root,
     root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes,
@@ -721,10 +739,20 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
       if (__DEV__ && ReactCurrentActQueue.isBatchingLegacy !== null) {
         ReactCurrentActQueue.didScheduleLegacyUpdate = true;
       }
+      /*
+      * scheduleLegacySyncCallback(callback: SchedulerCallback) {
+           includesLegacySyncCallbacks = true;
+           scheduleSyncCallback(callback);
+        }
+      * */
       scheduleLegacySyncCallback(performSyncWorkOnRoot.bind(null, root));
     } else {
+      /*
+      * syncQueue里面推任务
+      * */
       scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
     }
+    //支持微任务的情况下
     if (supportsMicrotasks) {
       // Flush the queue in a microtask.
       if (__DEV__ && ReactCurrentActQueue.current !== null) {
@@ -737,6 +765,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
       }
     } else {
       // Flush the queue in an Immediate task.
+      //unstable_scheduleCallback
       scheduleCallback(ImmediateSchedulerPriority, flushSyncCallbacks);
     }
     newCallbackNode = null;

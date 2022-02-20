@@ -263,8 +263,8 @@ export function updateContainer(
   if (__DEV__) {
     onScheduleRoot(container, element);
   }
-  //当前的fiberTree
-  const current = container.current;
+
+  const current = container.current; //rootFiber
   /*
   * let getCurrentTime;
     const hasPerformanceNow =
