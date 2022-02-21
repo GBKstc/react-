@@ -3668,7 +3668,7 @@ function beginWork(
       );
     }
   }
-
+  // update时：如果current存在可能存在优化路径，可以复用current（即上一次更新的Fiber节点）
   if (current !== null) {
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
@@ -3697,6 +3697,7 @@ function beginWork(
       ) {
         // No pending updates or context. Bail out now.
         didReceiveUpdate = false;
+        // 复用current
         return attemptEarlyBailoutIfNoScheduledUpdate(
           current,
           workInProgress,
