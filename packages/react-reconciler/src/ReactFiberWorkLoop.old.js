@@ -752,7 +752,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
       * */
       scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root));
     }
-    //支持微任务的情况下
+    //支持微任务的情况下k
     if (supportsMicrotasks) {
       // Flush the queue in a microtask.
       if (__DEV__ && ReactCurrentActQueue.current !== null) {
@@ -766,6 +766,8 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     } else {
       // Flush the queue in an Immediate task.
       //unstable_scheduleCallback
+      //遍历执行syncQueue里面的performSyncWorkOnRoot
+      //render阶段开始
       scheduleCallback(ImmediateSchedulerPriority, flushSyncCallbacks);
     }
     newCallbackNode = null;
@@ -800,6 +802,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
 // This is the entry point for every concurrent task, i.e. anything that
 // goes through Scheduler.
+//这是每个并发任务的入口点，即任何通过调度器的任务。
 function performConcurrentWorkOnRoot(root, didTimeout) {
   if (enableProfilerTimer && enableProfilerNestedUpdatePhase) {
     resetNestedUpdateFlag();
@@ -1140,6 +1143,7 @@ function markRootSuspended(root, suspendedLanes) {
 
 // This is the entry point for synchronous tasks that don't go
 // through Scheduler
+//这是不经过调度程序的同步任务的入口点
 function performSyncWorkOnRoot(root) {
   if (enableProfilerTimer && enableProfilerNestedUpdatePhase) {
     syncNestedUpdateFlag();
@@ -1154,6 +1158,7 @@ function performSyncWorkOnRoot(root) {
   let lanes = getNextLanes(root, NoLanes);
   if (!includesSomeLane(lanes, SyncLane)) {
     // There's no remaining sync work left.
+    // 没有剩余的同步工作了
     ensureRootIsScheduled(root, now());
     return null;
   }
@@ -1184,10 +1189,18 @@ function performSyncWorkOnRoot(root) {
   const finishedWork: Fiber = (root.current.alternate: any);
   root.finishedWork = finishedWork;
   root.finishedLanes = lanes;
+  //commit阶段工作起点
+  /* 
+  commit 阶段的主要工作分为三部分：
+    before mutation 阶段（执行 DOM 操作前）
+    mutation 阶段（执行 DOM 操作）
+    layout 阶段（执行 DOM 操作后）
+  */
   commitRoot(root);
 
   // Before exiting, make sure there's a callback scheduled for the next
   // pending level.
+  //退出之前，请确保为下一个挂起级别安排了回调
   ensureRootIsScheduled(root, now());
 
   return null;
@@ -1552,8 +1565,8 @@ export function renderHasNotSuspendedYet(): boolean {
 }
 
 function renderRootSync(root: FiberRoot, lanes: Lanes) {
-  const prevExecutionContext = executionContext;
-  executionContext |= RenderContext;
+  const prevExecutionContext = executionContext;//0
+  executionContext |= RenderContext;            //2
   const prevDispatcher = pushDispatcher();
 
   // If the root or lanes have changed, throw out the existing stack
@@ -1563,6 +1576,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
       if (isDevToolsPresent) {
         const memoizedUpdaters = root.memoizedUpdaters;
         if (memoizedUpdaters.size > 0) {
+          //还原挂起的更新程序
           restorePendingUpdaters(root, workInProgressRootRenderLanes);
           memoizedUpdaters.clear();
         }
@@ -1596,9 +1610,11 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
       handleError(root, thrownValue);
     }
   } while (true);
+  //重置上下文依赖项
   resetContextDependencies();
 
   executionContext = prevExecutionContext;
+  //ReactCurrentDispatcher.current = prevDispatcher;
   popDispatcher(prevDispatcher);
 
   if (workInProgress !== null) {
@@ -1735,6 +1751,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
     next = beginWork(current, unitOfWork, subtreeRenderLanes);
     stopProfilerTimerIfRunningAndRecordDelta(unitOfWork, true);
   } else {
+    //beginWork的工作是传入当前Fiber节点，创建子Fiber节点。
     next = beginWork(current, unitOfWork, subtreeRenderLanes);
   }
 
@@ -1869,6 +1886,8 @@ function commitRootImpl(root, renderPriorityLevel) {
     // no more pending effects.
     // TODO: Might be better if `flushPassiveEffects` did not automatically
     // flush synchronous work at the end, to avoid factoring hazards like this.
+
+    // 触发 useEffect 回调与其他同步任务。由于这些任务可能触发新的渲染，所以这里要一直遍历执行直到没有任务
     flushPassiveEffects();
   } while (rootWithPendingPassiveEffects !== null);
   flushRenderPhaseStrictModeWarningsInDEV();
@@ -1876,8 +1895,9 @@ function commitRootImpl(root, renderPriorityLevel) {
   if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
     throw new Error('Should not already be working.');
   }
-
+  // 指向当前应用的rootFiber
   const finishedWork = root.finishedWork;
+  // 优先级
   const lanes = root.finishedLanes;
 
   if (__DEV__) {
@@ -1912,6 +1932,7 @@ function commitRootImpl(root, renderPriorityLevel) {
       }
     }
   }
+  // 重置变量
   root.finishedWork = null;
   root.finishedLanes = NoLanes;
 
@@ -1924,14 +1945,16 @@ function commitRootImpl(root, renderPriorityLevel) {
 
   // commitRoot never returns a continuation; it always finishes synchronously.
   // So we can clear these now to allow a new callback to be scheduled.
+  // Scheduler回调函数重置
   root.callbackNode = null;
   root.callbackPriority = NoLane;
 
   // Update the first and last pending times on this root. The new first
   // pending time is whatever is left on the root fiber.
+  // 合并和清除优先级
   let remainingLanes = mergeLanes(finishedWork.lanes, finishedWork.childLanes);
   markRootFinished(root, remainingLanes);
-
+  // 重置全局变量
   if (root === workInProgressRoot) {
     // We can reset these now that they are finished.
     workInProgressRoot = null;

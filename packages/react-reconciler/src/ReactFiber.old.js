@@ -57,7 +57,8 @@ import {
   LegacyHiddenComponent,
   CacheComponent,
 } from './ReactWorkTags';
-import getComponentNameFromFiber from 'react-reconciler/src/getComponentNameFromFiber';
+import getComponentNameFromFiber
+  from 'react-reconciler/src/getComponentNameFromFiber';
 
 import {isDevToolsPresent} from './ReactFiberDevToolsHook.old';
 import {
@@ -118,16 +119,25 @@ function FiberNode(
   mode: TypeOfMode,
 ) {
   // Instance
+  //tag 描述了 Fiber 节点的类型
   this.tag = tag;
   this.key = key;
   this.elementType = null;
   this.type = null;
+  /*
+  * Fiber 节点的 stateNode 属性存储的当前节点的最终产物
+    ClassComponent 类型的节点则该属性指向的是当前 Class 组件的实例
+    HostComponent 类型的节点则该属性指向的是当前节点的 DOM 实例
+    HostRoot 类型的节点则该属性指向的是 fiberRoot 对象
+  * */
   this.stateNode = null;
 
   // Fiber
+  //return、child、sibling这三个属性主要用途是将每个Fiber节点连接起来，用链表的结构来描述树型结构的关系。
   this.return = null;
   this.child = null;
   this.sibling = null;
+
   this.index = 0;
 
   this.ref = null;
@@ -135,12 +145,17 @@ function FiberNode(
   this.pendingProps = pendingProps;
   this.memoizedProps = null;
   this.updateQueue = null;
+  //保存了同一事件循环中对组件的多次更新操作（多次调用 setState ）
   this.memoizedState = null;
   this.dependencies = null;
 
   this.mode = mode;
 
   // Effects
+  /*effectTag（flags）
+  * 副作用标记，标识了此 Fiber节点需要进行哪些操作，默认为 NoEffect。
+    标记了 NoEffect、PerformedWork 的节点在更新过程中会被跳过。
+  * */
   this.flags = NoFlags;
   this.subtreeFlags = NoFlags;
   this.deletions = null;
@@ -203,7 +218,7 @@ function FiberNode(
 //    is faster.
 // 5) It should be easy to port this to a C struct and keep a C implementation
 //    compatible.
-const createFiber = function(
+const createFiber = function (
   tag: WorkTag,
   pendingProps: mixed,
   key: null | string,
@@ -311,9 +326,9 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
     currentDependencies === null
       ? null
       : {
-          lanes: currentDependencies.lanes,
-          firstContext: currentDependencies.firstContext,
-        };
+        lanes: currentDependencies.lanes,
+        firstContext: currentDependencies.firstContext,
+      };
 
   // These will be overridden during the parent's reconciliation
   workInProgress.sibling = current.sibling;
@@ -406,9 +421,9 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
       currentDependencies === null
         ? null
         : {
-            lanes: currentDependencies.lanes,
-            firstContext: currentDependencies.firstContext,
-          };
+          lanes: currentDependencies.lanes,
+          firstContext: currentDependencies.firstContext,
+        };
 
     if (enableProfilerTimer) {
       // Note: We don't reset the actualTime counts. It's useful to accumulate
@@ -567,8 +582,8 @@ export function createFiberFromTypeAndProps(
 
         throw new Error(
           'Element type is invalid: expected a string (for built-in ' +
-            'components) or a class/function (for composite components) ' +
-            `but got: ${type == null ? type : typeof type}.${info}`,
+          'components) or a class/function (for composite components) ' +
+          `but got: ${type == null ? type : typeof type}.${info}`,
         );
       }
     }

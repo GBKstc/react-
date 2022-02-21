@@ -267,6 +267,7 @@ function workLoop(hasTimeRemaining, initialTime) {
   if (currentTask !== null) {
     return true;
   } else {
+    //taskQueue已经被清空 timerQueue列表内的任务在到触发时间之后会重新触发
     const firstTimer = peek(timerQueue);
     if (firstTimer !== null) {
       requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);

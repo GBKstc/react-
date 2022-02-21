@@ -38,9 +38,18 @@ function FiberRootNode(containerInfo, tag, hydrate, identifierPrefix) {
   //在持久更新中会用到，不支持增量更新的平台，react-dom是整个应用更新，所以用不到
   this.pendingChildren = null;
   //当前应用root节点对应的Fiber对象
+  /*
+  * current 属性既是应用程序中 Fiber树 的入口。
+    current 的值是一个 HostRoot 类型的 Fiber 节点，这个 HostRoot 的子节点就是程序的根组件（App）对应的 Fiber 节点。
+    在首次渲染调用 React.render 时，应用程序中其实只有一个 HostRoot 的 Fiber 节点，而在 render 过程中，
+    * 才会将我们传入的 App 组件构建成 HostRoot 的子 Fiber 节点。
+    * 作为已经计算完成并展示到视图中的 Fiber 树，在源码中称为 current 树。
+    * 而 current 树的 alternate 指向的另一棵树，就是用来计算变化的，称为 WorkInProgress 树（ WIP ）。
+  * */
   this.current = null;
   //缓存
   this.pingCache = null;
+  //存储工作循环(workLoop)结束后的副作用列表，用于commit阶段
   //已经完成任务的FiberRoot对象，在commit（提交）阶段之后会处理该值对应的任务
   this.finishedWork = null;
   //在任务倍挂起的时候通过setTimeout设置的返回内容，用来下一次如果有新的任务挂起时，清理还没触发的timeout

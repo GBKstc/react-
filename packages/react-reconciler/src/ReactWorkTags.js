@@ -34,12 +34,12 @@ export type WorkTag =
   | 23
   | 24;
 
-export const FunctionComponent = 0;   //函数组件
-export const ClassComponent = 1;      //Class组件
+export const FunctionComponent = 0;   //函数组件元素对应的 Fiber 结点
+export const ClassComponent = 1;      //Class组件元素对应的 Fiber 结点
 export const IndeterminateComponent = 2; // Before we know whether it is function or class  //在知道是0或者1之前的表示
 export const HostRoot = 3; // Root of a host tree. Could be nested inside another node.     //fiber树根组件 RootFiber
 export const HostPortal = 4; // A subtree. Could be an entry point to a different renderer.
-export const HostComponent = 5; //原生的HTML标签
+export const HostComponent = 5; //宿主组件元素(如div，button等)对应的 Fiber 结点
 export const HostText = 6;      //文字节点
 export const Fragment = 7;
 export const Mode = 8;

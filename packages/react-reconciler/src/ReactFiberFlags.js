@@ -12,13 +12,20 @@ import {enableCreateEventHandleAPI} from 'shared/ReactFeatureFlags';
 export type Flags = number;
 
 // Don't change these two values. They're used by React Dev Tools.
+// 作为 EffectTag 的初始值，或者用于 EffectTag 的比较判断，其值为 0 表示没有副作用，也就是不涉及更新
 export const NoFlags = /*                      */ 0b00000000000000000000000000;
+// 由 React devtools 读取， NoEffect 和 PerformedWork 都不会被 commit，当创建 Effect List时，会跳过NoEffect 和 PerformedWork
 export const PerformedWork = /*                */ 0b00000000000000000000000001;
 
 // You can change the rest (and add more).
+// 表示向树中插入新的子节点，对应的状态为 MOUNTING，当执行 commitPlacement 函数完成插入后， 清除该标志位
 export const Placement = /*                    */ 0b00000000000000000000000010;
+// 表示当 props、state、context 发生变化或者 forceUpdate 时，会标记为 Update ，
+// 检查到标记后，执行 mmitUpdate 函数进行属性更新，与其相关的生命周期函数为 componentDidMount 和 componentDidUpdate
 export const Update = /*                       */ 0b00000000000000000000000100;
 export const PlacementAndUpdate = /*           */ Placement | Update;
+// 标记将要卸载的结点，检查到标记后，执行 commitDeletion 函数对组件进行卸载，
+// 在节点树中删除对应对 节点，与其相关的生命周期函数为 componentWillUnmount
 export const Deletion = /*                     */ 0b00000000000000000000001000;
 export const ChildDeletion = /*                */ 0b00000000000000000000010000;
 export const ContentReset = /*                 */ 0b00000000000000000000100000;
@@ -75,7 +82,7 @@ export const BeforeMutationMask =
       // fire beforeblur
       // TODO: Only need to visit Deletions during BeforeMutation phase if an
       // element is focused.
-      ChildDeletion | Visibility
+    ChildDeletion | Visibility
     : 0);
 
 export const MutationMask =

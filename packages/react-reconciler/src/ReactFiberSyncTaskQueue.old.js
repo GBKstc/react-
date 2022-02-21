@@ -60,6 +60,7 @@ export function flushSyncCallbacks() {
       // TODO: Is this necessary anymore? The only user code that runs in this
       // queue is in the render or commit phases.
       setCurrentUpdatePriority(DiscreteEventPriority);
+      //遍历执行syncQueue
       for (; i < queue.length; i++) {
         let callback = queue[i];
         do {
