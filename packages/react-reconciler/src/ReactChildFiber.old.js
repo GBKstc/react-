@@ -265,6 +265,7 @@ function resolveLazy(lazyType) {
 // to be able to optimize each path individually by branching early. This needs
 // a compiler or we can do it manually. Helpers that don't need this branching
 // live outside of this function.
+//里面包含了diff算法
 function ChildReconciler(shouldTrackSideEffects) {
   function deleteChild(returnFiber: Fiber, childToDelete: Fiber): void {
     if (!shouldTrackSideEffects) {
@@ -570,14 +571,13 @@ function ChildReconciler(shouldTrackSideEffects) {
     // Update the fiber if the keys match, otherwise return null.
 
     const key = oldFiber !== null ? oldFiber.key : null;
-
+    //如果是文本类型的节点
     if (
       (typeof newChild === 'string' && newChild !== '') ||
       typeof newChild === 'number'
     ) {
       // Text nodes don't have keys. If the previous node is implicitly keyed
       // we can continue to replace it without aborting even if it is not a text
-      // node.
       if (key !== null) {
         return null;
       }
@@ -783,24 +783,27 @@ function ChildReconciler(shouldTrackSideEffects) {
 
     let resultingFirstChild: Fiber | null = null;
     let previousNewFiber: Fiber | null = null;
-
+    //第一轮遍历：处理更新的节点
     let oldFiber = currentFirstChild;
     let lastPlacedIndex = 0;
     let newIdx = 0;
     let nextOldFiber = null;
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+      //如果index大于newId 对应的oldFiber为null 当前的继续和下个newChildern[newId]进行比较
       if (oldFiber.index > newIdx) {
         nextOldFiber = oldFiber;
         oldFiber = null;
       } else {
         nextOldFiber = oldFiber.sibling;
       }
+      //判断key是否相同 如果不同返回null 相同返回复制的Fiber
       const newFiber = updateSlot(
         returnFiber,
         oldFiber,
         newChildren[newIdx],
         lanes,
       );
+      //newFiber===null 代表key不相同 退出第一轮遍历
       if (newFiber === null) {
         // TODO: This breaks on empty slots like null children. That's
         // unfortunate because it triggers the slow path all the time. We need
@@ -819,6 +822,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         }
       }
       lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+      //previousNewFiber记录newFiber已经复用的单链
       if (previousNewFiber === null) {
         // TODO: Move out of the loop. This only happens for the first run.
         resultingFirstChild = newFiber;
@@ -832,7 +836,8 @@ function ChildReconciler(shouldTrackSideEffects) {
       previousNewFiber = newFiber;
       oldFiber = nextOldFiber;
     }
-
+    //第一遍遍历结束
+    //newChildren遍历完，oldFiber没遍历完
     if (newIdx === newChildren.length) {
       // We've reached the end of the new children. We can delete the rest.
       deleteRemainingChildren(returnFiber, oldFiber);
@@ -1151,11 +1156,15 @@ function ChildReconciler(shouldTrackSideEffects) {
     while (child !== null) {
       // TODO: If key === null and child.key === null, then this only applies to
       // the first item in the list.
+      //遍历老的元素 如果找不到和newChild(JSX对象)相同的key 删除
       if (child.key === key) {
         const elementType = element.type;
         if (elementType === REACT_FRAGMENT_TYPE) {
           if (child.tag === Fragment) {
+            //Fragment元素 复用
+            //删除其余兄弟节点
             deleteRemainingChildren(returnFiber, child.sibling);
+            //复制childFiber
             const existing = useFiber(child, element.props.children);
             existing.return = returnFiber;
             if (__DEV__) {
@@ -1181,9 +1190,14 @@ function ChildReconciler(shouldTrackSideEffects) {
               elementType.$$typeof === REACT_LAZY_TYPE &&
               resolveLazy(elementType) === child.type)
           ) {
+            //元素类型相同 复用
+            //删除其余兄弟节点
             deleteRemainingChildren(returnFiber, child.sibling);
+            //复制childFiber
             const existing = useFiber(child, element.props);
+            //复制ref
             existing.ref = coerceRef(returnFiber, child, element);
+            //设置子元素的父级
             existing.return = returnFiber;
             if (__DEV__) {
               existing._debugSource = element._source;
@@ -1193,6 +1207,7 @@ function ChildReconciler(shouldTrackSideEffects) {
           }
         }
         // Didn't match.
+        //没有匹配的情况
         deleteRemainingChildren(returnFiber, child);
         break;
       } else {
@@ -1229,6 +1244,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     while (child !== null) {
       // TODO: If key === null and child.key === null, then this only applies to
       // the first item in the list.
+      //key不同直接删除
       if (child.key === key) {
         if (
           child.tag === HostPortal &&
@@ -1271,6 +1287,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     // Handle top level unkeyed fragments as if they were arrays.
     // This leads to an ambiguity between <>{[...]}</> and <>...</>.
     // We treat the ambiguous cases above the same.
+    //除去<>...</>
     const isUnkeyedTopLevelFragment =
       typeof newChild === 'object' &&
       newChild !== null &&
@@ -1281,6 +1298,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     // Handle object types
+    //更新后newChild为单个元素的情况下
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE:
@@ -1314,7 +1332,7 @@ function ChildReconciler(shouldTrackSideEffects) {
             );
           }
       }
-
+      //更新后newChild为多个元素的情况下
       if (isArray(newChild)) {
         return reconcileChildrenArray(
           returnFiber,

@@ -1162,7 +1162,7 @@ function performSyncWorkOnRoot(root) {
     ensureRootIsScheduled(root, now());
     return null;
   }
-
+  //调用workLoopSync
   let exitStatus = renderRootSync(root, lanes);
   if (root.tag !== LegacyRoot && exitStatus === RootErrored) {
     // If something threw an error, try rendering one more time. We'll render
@@ -1588,7 +1588,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
         movePendingFibersToMemoized(root, lanes);
       }
     }
-
+    //workInProgress = createWorkInProgress(root.current, null);
     prepareFreshStack(root, lanes);
   }
 
@@ -1604,6 +1604,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
 
   do {
     try {
+      //同步模式调用performUnitOfWork
       workLoopSync();
       break;
     } catch (thrownValue) {
@@ -1647,6 +1648,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
 function workLoopSync() {
   // Already timed out, so perform work without checking if we need to yield.
   while (workInProgress !== null) {
+    //调用beginWork
     performUnitOfWork(workInProgress);
   }
 }
@@ -1674,8 +1676,9 @@ function renderRootConcurrent(root: FiberRoot, lanes: Lanes) {
         movePendingFibersToMemoized(root, lanes);
       }
     }
-
+    //workInProgressRootRenderTargetTime = now() + RENDER_TIMEOUT_MS;
     resetRenderTimer();
+    //workInProgress = createWorkInProgress(root.current, null);
     prepareFreshStack(root, lanes);
   }
 
