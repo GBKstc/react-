@@ -1163,6 +1163,7 @@ function performSyncWorkOnRoot(root) {
     return null;
   }
   //调用workLoopSync
+  // return workInProgressRootExitStatus = RootIncomplete
   let exitStatus = renderRootSync(root, lanes);
   if (root.tag !== LegacyRoot && exitStatus === RootErrored) {
     // If something threw an error, try rendering one more time. We'll render
@@ -1740,7 +1741,19 @@ function workLoopConcurrent() {
     performUnitOfWork(workInProgress);
   }
 }
-
+/* 
+首先执行beginWork进行节点操作，以及创建子节点，子节点会返回成为next，
+如果有next就返回。返回到workLoop之后，workLoop会判断是否过期之类的，
+如果都OK就会再次调用该方法。
+如果next不存在，说明当前节点向下遍历子节点已经到底了，
+说明这个子树侧枝已经遍历完，可以完成这部分工作了。
+就执行completeUnitOfWork，
+completeUnitOfWork就是处理一些effact tag，
+他会一直往上返回直到root节点或者在某一个节点发现有sibling兄弟节点为止。
+如果到了root那么他的返回也是null，代表整棵树的遍历已经结束了，
+可以commit了，如果遇到兄弟节点就返回该节点，
+因为这个节点可能也会存在子节点，需要通过beginWork进行操作。
+*/
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
@@ -1760,6 +1773,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
 
   resetCurrentDebugFiberInDEV();
   unitOfWork.memoizedProps = unitOfWork.pendingProps;
+  //如果没子元素了 整棵树的遍历已经结束了
   if (next === null) {
     // If this doesn't spawn new work, complete the current work.
     completeUnitOfWork(unitOfWork);
@@ -1782,6 +1796,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
     const returnFiber = completedWork.return;
 
     // Check if the work completed or if something threw.
+    // 如果没有错误
     if ((completedWork.flags & Incomplete) === NoFlags) {
       setCurrentDebugFiberInDEV(completedWork);
       let next;
@@ -1797,7 +1812,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
         stopProfilerTimerIfRunningAndRecordDelta(completedWork, false);
       }
       resetCurrentDebugFiberInDEV();
-
+      
       if (next !== null) {
         // Completing this fiber spawned new work. Work on that next.
         workInProgress = next;
@@ -1807,6 +1822,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
       // This fiber did not complete because something threw. Pop values off
       // the stack without entering the complete phase. If this is a boundary,
       // capture values if possible.
+      // 如果有错误
       const next = unwindWork(completedWork, subtreeRenderLanes);
 
       // Because this fiber did not complete, don't reset its lanes.
@@ -1898,7 +1914,8 @@ function commitRootImpl(root, renderPriorityLevel) {
   if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
     throw new Error('Should not already be working.');
   }
-  // 指向当前应用的rootFiber
+  // root指 fiberRootNode
+  // root.finishedWork指当前应用的rootFiber
   const finishedWork = root.finishedWork;
   // 优先级
   const lanes = root.finishedLanes;
@@ -1956,8 +1973,9 @@ function commitRootImpl(root, renderPriorityLevel) {
   // pending time is whatever is left on the root fiber.
   // 合并和清除优先级
   let remainingLanes = mergeLanes(finishedWork.lanes, finishedWork.childLanes);
+  // 重置优先级相关变量
   markRootFinished(root, remainingLanes);
-  // 重置全局变量
+    // 重置全局变量
   if (root === workInProgressRoot) {
     // We can reset these now that they are finished.
     workInProgressRoot = null;
@@ -1978,6 +1996,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     (finishedWork.subtreeFlags & PassiveMask) !== NoFlags ||
     (finishedWork.flags & PassiveMask) !== NoFlags
   ) {
+    // 调度useEffect
     if (!rootDoesHavePassiveEffects) {
       rootDoesHavePassiveEffects = true;
       pendingPassiveEffectsRemainingLanes = remainingLanes;
@@ -2024,6 +2043,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     // The first phase a "before mutation" phase. We use this phase to read the
     // state of the host tree right before we mutate it. This is where
     // getSnapshotBeforeUpdate is called.
+    // before mutation阶段
     const shouldFireAfterActiveInstanceBlur = commitBeforeMutationEffects(
       root,
       finishedWork,
@@ -2042,6 +2062,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     }
 
     // The next phase is the mutation phase, where we mutate the host tree.
+    //mutation阶段
     commitMutationEffects(root, finishedWork, lanes);
 
     if (enableCreateEventHandleAPI) {
@@ -2104,7 +2125,7 @@ function commitRootImpl(root, renderPriorityLevel) {
   }
 
   const rootDidHavePassiveEffects = rootDoesHavePassiveEffects;
-
+  // useEffect相关
   if (rootDoesHavePassiveEffects) {
     // This commit has passive effects. Stash a reference to them. But don't
     // schedule a callback until after flushing layout work.
@@ -2130,6 +2151,7 @@ function commitRootImpl(root, renderPriorityLevel) {
   // any work remaining at all (which would also include stuff like Suspense
   // retries or transitions). It's been like this for a while, though, so fixing
   // it probably isn't that urgent.
+  // 性能优化相关
   if (remainingLanes === NoLanes) {
     // If there's no remaining work, we can clear the set of already failed
     // error boundaries.
@@ -2156,8 +2178,9 @@ function commitRootImpl(root, renderPriorityLevel) {
 
   // Always call this before exiting `commitRoot`, to ensure that any
   // additional work on this root is scheduled.
+  // 在离开commitRoot函数前调用，触发一次新的调度，确保任何附加的任务被调度
   ensureRootIsScheduled(root, now());
-
+  //处理未捕获错误
   if (hasUncaughtError) {
     hasUncaughtError = false;
     const error = firstUncaughtError;
@@ -2200,6 +2223,9 @@ function commitRootImpl(root, renderPriorityLevel) {
   }
 
   // If layout work was scheduled, flush it now.
+  // 执行同步任务，这样同步任务不需要等到下次事件循环再执行
+  // 比如在 componentDidMount 中执行 setState 创建的更新会在这里被同步执行
+  // 或useLayoutEffect
   flushSyncCallbacks();
 
   if (__DEV__) {

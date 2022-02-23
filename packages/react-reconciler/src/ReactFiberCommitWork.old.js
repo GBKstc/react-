@@ -370,6 +370,7 @@ function commitBeforeMutationEffects_complete() {
   while (nextEffect !== null) {
     const fiber = nextEffect;
     setCurrentDebugFiberInDEV(fiber);
+    // 调用getSnapshotBeforeUpdate
     try {
       commitBeforeMutationEffectsOnFiber(fiber);
     } catch (error) {
@@ -397,6 +398,7 @@ function commitBeforeMutationEffectsOnFiber(finishedWork: Fiber) {
     if (!shouldFireAfterActiveInstanceBlur && focusedInstanceHandle !== null) {
       // Check to see if the focused element was inside of a hidden (Suspense) subtree.
       // TODO: Move this out of the hot path using a dedicated effect tag.
+      //处理DOM节点渲染/删除后的 autoFocus、blur 逻辑
       if (
         finishedWork.tag === SuspenseComponent &&
         isSuspenseBoundaryBeingHidden(current, finishedWork) &&
@@ -452,6 +454,7 @@ function commitBeforeMutationEffectsOnFiber(finishedWork: Fiber) {
               }
             }
           }
+          // 调用getSnapshotBeforeUpdate
           const snapshot = instance.getSnapshotBeforeUpdate(
             finishedWork.elementType === finishedWork.type
               ? prevProps
@@ -2160,6 +2163,7 @@ function commitMutationEffects_begin(root: FiberRoot) {
       for (let i = 0; i < deletions.length; i++) {
         const childToDelete = deletions[i];
         try {
+          // 删除DOM
           commitDeletion(root, childToDelete, fiber);
         } catch (error) {
           reportUncaughtErrorInDEV(error);
@@ -2207,11 +2211,11 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
   // we do in all the other phases. I think this one is only different
   // because of the shared reconciliation logic below.
   const flags = finishedWork.flags;
-
+  // 根据 ContentReset effectTag重置文字节点
   if (flags & ContentReset) {
     commitResetTextContent(finishedWork);
   }
-
+  // 更新ref
   if (flags & Ref) {
     const current = finishedWork.alternate;
     if (current !== null) {
@@ -2282,8 +2286,10 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
   // updates, and deletions. To avoid needing to add a case for every possible
   // bitmap value, we remove the secondary effects from the effect tag and
   // switch on that value.
+  // 根据 effectTag 分别处理
   const primaryFlags = flags & (Placement | Update | Hydrating);
   outer: switch (primaryFlags) {
+    // 插入DOM
     case Placement: {
       commitPlacement(finishedWork);
       // Clear the "placement" from effect tag so that we know that this is
@@ -2293,14 +2299,17 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
       finishedWork.flags &= ~Placement;
       break;
     }
+    // 插入DOM 并 更新DOM
     case PlacementAndUpdate: {
       // Placement
+      // 插入
       commitPlacement(finishedWork);
       // Clear the "placement" from effect tag so that we know that this is
       // inserted, before any life-cycles like componentDidMount gets called.
       finishedWork.flags &= ~Placement;
 
       // Update
+      //更新
       const current = finishedWork.alternate;
       commitWork(current, finishedWork);
       break;
@@ -2317,6 +2326,7 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
       commitWork(current, finishedWork);
       break;
     }
+    //更新
     case Update: {
       const current = finishedWork.alternate;
       commitWork(current, finishedWork);

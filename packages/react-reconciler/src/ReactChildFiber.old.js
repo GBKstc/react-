@@ -335,6 +335,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     lastPlacedIndex: number,
     newIndex: number,
   ): number {
+    //赋值替换的位置
     newFiber.index = newIndex;
     if (!shouldTrackSideEffects) {
       // During hydration, the useId algorithm needs to know which fibers are
@@ -344,7 +345,9 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
     const current = newFiber.alternate;
     if (current !== null) {
+      //更新的情况下
       const oldIndex = current.index;
+      //如果lastPlaceIndex>oldIndex 说明newFiber需要向右移动
       if (oldIndex < lastPlacedIndex) {
         // This is a move.
         newFiber.flags |= Placement;
@@ -821,8 +824,10 @@ function ChildReconciler(shouldTrackSideEffects) {
           deleteChild(returnFiber, oldFiber);
         }
       }
+      //给newFiber打上替换的标志和替换的位置index 
+      //lastPlacedIndex记录最后一个可以复用的节点在oldFiber中的位置
       lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
-      //previousNewFiber记录newFiber已经复用的单链
+      //resultingFirstChild记录newFiber已经复用的单链
       if (previousNewFiber === null) {
         // TODO: Move out of the loop. This only happens for the first run.
         resultingFirstChild = newFiber;
@@ -840,6 +845,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     //newChildren遍历完，oldFiber没遍历完
     if (newIdx === newChildren.length) {
       // We've reached the end of the new children. We can delete the rest.
+      //给多余的oldFiber打上删除的标志
       deleteRemainingChildren(returnFiber, oldFiber);
       if (getIsHydrating()) {
         const numberOfForks = newIdx;
@@ -847,10 +853,11 @@ function ChildReconciler(shouldTrackSideEffects) {
       }
       return resultingFirstChild;
     }
-
+    //oldFiber遍历完了，newChildren没遍历完
     if (oldFiber === null) {
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
+      //遍历剩余newChildren 创建newFiber
       for (; newIdx < newChildren.length; newIdx++) {
         const newFiber = createChild(returnFiber, newChildren[newIdx], lanes);
         if (newFiber === null) {
@@ -872,6 +879,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       return resultingFirstChild;
     }
 
+    //如果oldFiber和newChildren都没遍历完
     // Add all children to a key map for quick lookups.
     const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
 

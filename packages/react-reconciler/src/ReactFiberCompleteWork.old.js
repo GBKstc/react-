@@ -266,6 +266,7 @@ if (supportsMutation) {
     // TODO: Experiencing an error where oldProps is null. Suggests a host
     // component is hitting the resume path. Figure out why. Possibly
     // related to `hidden`.
+    //处理props
     const updatePayload = prepareUpdate(
       instance,
       type,
@@ -275,6 +276,8 @@ if (supportsMutation) {
       currentHostContext,
     );
     // TODO: Type this specific to this type of component.
+    //处理完的props会被赋值给workInProgress.updateQueue，并最终会在commit阶段被渲染在页面上。
+    //updatePayload为数组形式，他的偶数索引的值为变化的prop key，奇数索引的值为变化的prop value
     workInProgress.updateQueue = (updatePayload: any);
     // If the update payload indicates that there is a change or if there
     // is a new ref we mark this as an update. All the work is done in commitWork.
@@ -463,7 +466,9 @@ if (supportsMutation) {
     const oldProps = current.memoizedProps;
     // If there are no effects associated with this node, then none of our children had any updates.
     // This guarantees that we can reuse all of them.
+    //如果没有这个节点关联的更新，说明子组件没更新
     const childrenUnchanged = hadNoMutationsEffects(current, workInProgress);
+    //如果子组件没更新 新旧props相等 说明没有修改 重用之前的实例
     if (childrenUnchanged && oldProps === newProps) {
       // No changes, just reuse the existing instance.
       // Note that this might release a previous clone.
@@ -898,6 +903,7 @@ function completeWork(
       const rootContainerInstance = getRootHostContainer();
       const type = workInProgress.type;
       if (current !== null && workInProgress.stateNode != null) {
+        // update的情况
         updateHostComponent(
           current,
           workInProgress,
@@ -910,6 +916,7 @@ function completeWork(
           markRef(workInProgress);
         }
       } else {
+        // mount的情况
         if (!newProps) {
           if (workInProgress.stateNode === null) {
             throw new Error(
@@ -928,6 +935,7 @@ function completeWork(
         // "stack" as the parent. Then append children as we go in beginWork
         // or completeWork depending on whether we want to add them top->down or
         // bottom->up. Top->down is faster in IE11.
+        //服务端的情况
         const wasHydrated = popHydrationState(workInProgress);
         if (wasHydrated) {
           // TODO: Move this and createInstance step into the beginPhase
@@ -944,6 +952,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
+          // 为fiber创建对应DOM节点
           const instance = createInstance(
             type,
             newProps,
@@ -951,14 +960,15 @@ function completeWork(
             currentHostContext,
             workInProgress,
           );
-
+          // 将子孙DOM节点插入刚生成的DOM节点中
           appendAllChildren(instance, workInProgress, false, false);
-
+          // DOM节点赋值给fiber.stateNode
           workInProgress.stateNode = instance;
 
           // Certain renderers require commit-time effects for initial mount.
           // (eg DOM renderer supports auto-focus for certain elements).
           // Make sure such renderers get scheduled for later work.
+          // 与update逻辑中的updateHostComponent类似的处理props的过程
           if (
             finalizeInitialChildren(
               instance,
