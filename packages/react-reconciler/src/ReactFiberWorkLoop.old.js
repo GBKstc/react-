@@ -674,6 +674,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
   // Determine the next lanes to work on, and their priority.
   //nextLanes应该是为空
+  //获取此次更新的优先级 https://juejin.cn/post/6999459656540094494
   const nextLanes = getNextLanes(
     root,
     root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes,
