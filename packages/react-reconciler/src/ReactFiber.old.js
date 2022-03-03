@@ -122,11 +122,14 @@ function FiberNode(
   //tag 描述了 Fiber 节点的类型
   this.tag = tag;
   this.key = key;
+  // 大部分情况同type，某些情况不同，比如FunctionComponent使用React.memo包裹
   this.elementType = null;
+  // 对于 FunctionComponent，指函数本身，对于ClassComponent，指class，对于HostComponent，指DOM节点tagName
   this.type = null;
   /*
   * Fiber 节点的 stateNode 属性存储的当前节点的最终产物
     ClassComponent 类型的节点则该属性指向的是当前 Class 组件的实例
+    functionComponent 指向本身函数
     HostComponent 类型的节点则该属性指向的是当前节点的 DOM 实例
     HostRoot 类型的节点则该属性指向的是 fiberRoot 对象
   * */

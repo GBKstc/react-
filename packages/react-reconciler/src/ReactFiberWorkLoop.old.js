@@ -1649,6 +1649,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
 /** @noinline */
 function workLoopSync() {
   // Already timed out, so perform work without checking if we need to yield.
+  //
   while (workInProgress !== null) {
     //调用beginWork
     performUnitOfWork(workInProgress);

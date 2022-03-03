@@ -176,6 +176,7 @@ type Dispatch<A> = A => void;
 let renderLanes: Lanes = NoLanes;
 // The work-in-progress fiber. I've named it differently to distinguish it from
 // the work-in-progress hook.
+//目前正在渲染fiber
 let currentlyRenderingFiber: Fiber = (null: any);
 
 // Hooks are stored as a linked list on the fiber's memoizedState field. The
@@ -426,10 +427,13 @@ export function renderWithHooks<Props, SecondArg>(
   let children = Component(props, secondArg);
 
   // Check if there was a render phase update
+  // 重新渲染的时候
   if (didScheduleRenderPhaseUpdateDuringThisPass) {
     // Keep rendering in a loop for as long as render phase updates continue to
     // be scheduled. Use a counter to prevent infinite loops.
     let numberOfReRenders: number = 0;
+    //如果在一次更新中（也就是调用FunctionalComponent的过程中）如果直接调用了类似setState的Hooks API产生了新的更新，则会在当前的渲染周期中直接执行更新。
+    //所谓reRender就是说在当前更新周期中又产生了新的更新
     do {
       didScheduleRenderPhaseUpdateDuringThisPass = false;
       localIdCounter = 0;
@@ -458,7 +462,7 @@ export function renderWithHooks<Props, SecondArg>(
         // Also validate hook order for cascading updates.
         hookTypesUpdateIndexDev = -1;
       }
-
+      // 重新渲染就是HooksDispatcherOnRerender了
       ReactCurrentDispatcher.current = __DEV__
         ? HooksDispatcherOnRerenderInDEV
         : HooksDispatcherOnRerender;
@@ -635,12 +639,14 @@ function mountWorkInProgressHook(): Hook {
 
     next: null,
   };
-
+  
   if (workInProgressHook === null) {
     // This is the first hook in the list
+    //第一次调用useState
     currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
   } else {
     // Append to the end of the list
+    //在workInProgressHook链后面添加新的hook
     workInProgressHook = workInProgressHook.next = hook;
   }
   return workInProgressHook;
@@ -1497,7 +1503,9 @@ function forceStoreRerender(fiber) {
 function mountState<S>(
   initialState: (() => S) | S,
 ): [S, Dispatch<BasicStateAction<S>>] {
+  //获取新建的hook
   const hook = mountWorkInProgressHook();
+  //如果传进来的是个函数
   if (typeof initialState === 'function') {
     // $FlowFixMe: Flow doesn't like mixed types
     initialState = initialState();
@@ -1508,6 +1516,7 @@ function mountState<S>(
     interleaved: null,
     lanes: NoLanes,
     dispatch: null,
+    // return typeof action === 'function' ? action(state) : action;
     lastRenderedReducer: basicStateReducer,
     lastRenderedState: (initialState: any),
   };

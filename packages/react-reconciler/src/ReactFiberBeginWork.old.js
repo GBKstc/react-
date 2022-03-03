@@ -954,7 +954,7 @@ function markRef(current: Fiber | null, workInProgress: Fiber) {
     }
   }
 }
-
+//functionComponent会调用hooks方法
 function updateFunctionComponent(
   current,
   workInProgress,
@@ -1134,6 +1134,7 @@ function updateClassComponent(
       workInProgress.flags |= Placement;
     }
     // In the initial pass we might need to construct the instance.
+    //根据class 创建实例instance 并且赋值给workInProgress.stateNode
     constructClassInstance(workInProgress, Component, nextProps);
     mountClassInstance(workInProgress, Component, nextProps, renderLanes);
     shouldUpdate = true;
