@@ -651,7 +651,7 @@ function mountWorkInProgressHook(): Hook {
   }
   return workInProgressHook;
 }
-
+//根据hook的声名顺序 获取currentHook.next
 function updateWorkInProgressHook(): Hook {
   // This function is used both for updates and for re-renders triggered by a
   // render phase update. It assumes there is either a current hook we can
@@ -671,6 +671,7 @@ function updateWorkInProgressHook(): Hook {
   }
 
   let nextWorkInProgressHook: null | Hook;
+
   if (workInProgressHook === null) {
     nextWorkInProgressHook = currentlyRenderingFiber.memoizedState;
   } else {
@@ -685,7 +686,7 @@ function updateWorkInProgressHook(): Hook {
     currentHook = nextCurrentHook;
   } else {
     // Clone from the current hook.
-
+    
     if (nextCurrentHook === null) {
       throw new Error('Rendered more hooks than during the previous render.');
     }
@@ -2203,13 +2204,14 @@ function dispatchSetState<S, A>(
     eagerState: null,
     next: (null: any),
   };
-
+  //如果是在更新过程中调用更新 那么只往pending里面添加update 后面一次性更新
   if (isRenderPhaseUpdate(fiber)) {
     enqueueRenderPhaseUpdate(queue, update);
   } else {
     enqueueUpdate(fiber, queue, update, lane);
 
     const alternate = fiber.alternate;
+    //第一次渲染
     if (
       fiber.lanes === NoLanes &&
       (alternate === null || alternate.lanes === NoLanes)
@@ -2217,6 +2219,10 @@ function dispatchSetState<S, A>(
       // The queue is currently empty, which means we can eagerly compute the
       // next state before entering the render phase. If the new state is the
       // same as the current state, we may be able to bail out entirely.
+      /* 
+        队列当前为空，这意味着我们可以在进入渲染阶段之前计算下一个状态。
+        如果新的状态与当前状态相同，我们可能能够跳过渲染。
+      */
       const lastRenderedReducer = queue.lastRenderedReducer;
       if (lastRenderedReducer !== null) {
         let prevDispatcher;
