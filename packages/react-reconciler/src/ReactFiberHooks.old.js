@@ -432,8 +432,8 @@ export function renderWithHooks<Props, SecondArg>(
     // Keep rendering in a loop for as long as render phase updates continue to
     // be scheduled. Use a counter to prevent infinite loops.
     let numberOfReRenders: number = 0;
-    //如果在一次更新中（也就是调用FunctionalComponent的过程中）如果直接调用了类似setState的Hooks API产生了新的更新，则会在当前的渲染周期中直接执行更新。
-    //所谓reRender就是说在当前更新周期中又产生了新的更新
+    //如果在一次更新中（也就是调用FunctionalComponent的过程中）如果直接调用了类似setXXX的Hooks API产生了新的更新，则会在当前的渲染周期中直接执行更新。
+    //就是说在当前更新周期中又产生了新的更新
     do {
       didScheduleRenderPhaseUpdateDuringThisPass = false;
       localIdCounter = 0;
@@ -639,7 +639,7 @@ function mountWorkInProgressHook(): Hook {
 
     next: null,
   };
-  
+
   if (workInProgressHook === null) {
     // This is the first hook in the list
     //第一次调用useState
