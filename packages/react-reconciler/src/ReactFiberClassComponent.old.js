@@ -1197,7 +1197,7 @@ function updateClassInstance(
     );
     newState = workInProgress.memoizedState;
   }
-
+  //是否需要更新 
   const shouldUpdate =
     checkHasForceUpdateAfterProcessing() ||
     checkShouldComponentUpdate(
@@ -1261,6 +1261,8 @@ function updateClassInstance(
 
     // If shouldComponentUpdate returned false, we should still update the
     // memoized props/state to indicate that this work can be reused.
+    //如果shouldComponentUpdate返回的是false,我们依旧更新memoizedProps和memoizedState
+    //来表明这个工作可以重复使用
     workInProgress.memoizedProps = newProps;
     workInProgress.memoizedState = newState;
   }
