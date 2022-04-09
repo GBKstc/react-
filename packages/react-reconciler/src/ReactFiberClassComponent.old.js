@@ -837,7 +837,7 @@ function mountClassInstance(
   instance.props = newProps;
   instance.state = workInProgress.memoizedState;
   instance.refs = emptyRefsObject;
-
+  
   initializeUpdateQueue(workInProgress);
 
   const contextType = ctor.contextType;

@@ -120,7 +120,7 @@ function legacyCreateRootFromDOMContainer(
     let rootSibling;
     while ((rootSibling = container.lastChild)) {
       container.removeChild(rootSibling);
-    }
+    } 
   }
   //创建根节点
   //root.current = uninitializedFiber;
